@@ -22,12 +22,12 @@
 
 ### 4. Filter risky categories
 **Filter out domains from the following categories: "XED", "GAYL", "PORN", "PROV", "DATE", "MINF", "REL", "LGBT"**
-- run: ```filter_categories.py [-h] -i INPUTURLS -l LOCALPATH [-g GLOBALPATH]```
+- run: ```filter_categories.py [-h] -i INPUTURLS -l LOCALPATH -t TARGETDIR [-g GLOBALPATH]```
 - result: ```targetdir/[COUNTRYCODE]_http3.txt.filtered.txt```
 
 ### 5. Resolve IP addresses
 **Resolve domain names by querying dot://8.8.8.8 (Google DNS)**
-- run ```resolve.py [-h] -i INPUTFILE [-p PREFIX]``` 
+- run ```resolve.py [-h] -i INPUTFILE -p PREFIX -t TARGETDIR``` 
 - result: ```targetdir/[PREFIX]_cacheddns.txt``` with lines like this: ```url-----ip```
 
 

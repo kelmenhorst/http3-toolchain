@@ -12,9 +12,12 @@ with urllib.request.urlopen("https://raw.githubusercontent.com/kush789/How-India
 			cis_india = (url.read().decode().splitlines())
 
 def run(input_urls_filepath, local_filepath, global_filepath, target_dir):
-	df_global = pandas.read_csv(global_filepath, header=None, usecols=[0, 1])
+	if global_filepath:
+		df_global = pandas.read_csv(global_filepath, header=None, usecols=[0, 1])
 	df_cc = pandas.read_csv(local_filepath, header=None, usecols=[0, 1])
-	df = pandas.concat([df_global, df_cc], ignore_index=True)
+	df = df_cc
+	if global_filepath:
+		df = pandas.concat([df_global], ignore_index=True)
 
 	not_found = []
 	ok = []
@@ -57,9 +60,10 @@ def main(argv):
 	# Add the arguments.
 	argparser.add_argument("-i", "--inputurls", help="input url file, structured", required=True)
 	argparser.add_argument("-l", "--localpath", help="path to citizenlab local cc.csv file", required=True)
+	argparser.add_argument("-t", "--targetdir", help="path to store the results in", required=True)
 	argparser.add_argument("-g", "--globalpath", help="path to citizenlab global.csv file")
 	out = argparser.parse_args()
-	run(out.inputurls, out.localpath, out.globalpath)
+	run(out.inputurls, out.localpath, out.globalpath, out.targetdir)
 
 if __name__ == "__main__":
    main(sys.argv[1:])

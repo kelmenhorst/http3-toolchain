@@ -53,9 +53,10 @@ def main(argv):
 
 	# Add the arguments.
 	argparser.add_argument("-i", "--inputfile", help="url list, structured", required=True)
-	argparser.add_argument("-p", "--prefix", help="name prefix of the output file")
+	argparser.add_argument("-p", "--prefix", help="name prefix of the output file", required=True)
+	argparser.add_argument("-t", "--targetdir", help="directory to store the results in", required=True)
 	out = argparser.parse_args()
-	run(out.inputfile, out.outputfile)
+	run(out.inputfile, out.prefix, out.targetdir)
 
 
 if __name__ == "__main__":
