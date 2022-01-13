@@ -30,7 +30,7 @@ def main(argv):
     print("Step 1: Extracts url strings from csv tables...")
 
     # generate_txt_input.py
-    targetdir = "raw"
+    targetdir = os.path.join(args.targetdir, "raw")
     Path(targetdir).mkdir(parents=True, exist_ok=True)
     generate_txt_input.run(cc, targetdir, args.listdir, args.column)
     urls_file = os.path.join(targetdir, cc+".txt")
@@ -41,7 +41,7 @@ def main(argv):
     print("Step 2: Run miniooni urlgetter with HTTP3Enabled=true and inspect output to filter url list for HTTP3 support...")
 
     # check_http3.py
-    targetdir = "http3"
+    targetdir = os.path.join(args.targetdir,"http3")
     Path(targetdir).mkdir(parents=True, exist_ok=True)
     check_http3.run(urls_file, args.miniooni_path, targetdir, args.verbose)
     http3_file = os.path.join(targetdir, cc+"_http3.txt")
@@ -64,7 +64,7 @@ def main(argv):
     print("Step 4: Filter out risky content categories: XED, GAYL, PORN, PROV, DATE, MINF, REL, LGBT...")
 
     # filter_categories.py (optional input file?)
-    targetdir = "filtered"
+    targetdir = os.path.join(args.targetdir,"filtered")
     Path(targetdir).mkdir(parents=True, exist_ok=True)
     local_filepath = os.path.join(args.listdir, "lists", cc+".csv")
     global_filepath = os.path.join(args.listdir, "lists", "global.csv")
@@ -80,7 +80,9 @@ def main(argv):
     if args.globallist:
         prefix += "_global"
     prefix += "_http3_filtered"
-    resolve.run(http3_file, prefix)
+    targetdir = os.path.join(args.targetdir,"resolved")
+    Path(targetdir).mkdir(parents=True, exist_ok=True)
+    resolve.run(http3_file, prefix, targetdir)
 
     print("Step 5: Done.")
 
