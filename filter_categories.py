@@ -17,7 +17,7 @@ def run(input_urls_filepath, local_filepath, global_filepath, target_dir):
 	df_cc = pandas.read_csv(local_filepath, header=None, usecols=[0, 1])
 	df = df_cc
 	if global_filepath:
-		df = pandas.concat([df_global], ignore_index=True)
+		df = pandas.concat([df_cc, df_global], ignore_index=True)
 
 	not_found = []
 	ok = []
