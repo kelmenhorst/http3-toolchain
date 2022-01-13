@@ -46,7 +46,6 @@ def measure(step, url):
         entry["resolver_url"] = "dot://8.8.8.8:853"
 
     entry["step"] = step
-    entry["no_collector"] = True
 
     out = run_command(entry)
     return measurement_passed(out), entry
@@ -60,6 +59,7 @@ def measure_sni(step, entry):
     entry["step"] = entry["step"]+"_inverse"
     entry["sni"] = entry["domain"]
     entry["input_url"] = sni_alt
+    entry["domain"] = urlparse(sni_alt).netloc
     if "dnscache" in entry:
         entry["dnscache"] = sni_alt_cache
     run_command(entry)
@@ -77,6 +77,8 @@ def make_urlgetter_command(entry):
     if "resolver_url" in entry:
         cmd.append("-O")
         cmd.append("ResolverURL="+entry["resolver_url"])
+        cmd.append("-O")
+        cmd.append("RejectDNSBogons=true")
     
     if "dnscache" in entry:
         cmd.append("-O")
@@ -91,8 +93,7 @@ def make_urlgetter_command(entry):
     cmd.append("-A")
     cmd.append("urlgetter_step="+entry["step"])
 
-    if "no_collector" in entry:
-        cmd.append("-n")
+    cmd.append("-n") # no collector
     
     if "no_report" in entry:
         cmd.append("-N")
