@@ -28,7 +28,10 @@ def run(input_urls_filepath, local_filepath, global_filepath, target_dir):
 			if url.endswith("/"):
 				url = url[:-1]
 			url = url.replace("https://", "")
-			index = df[df[0].str.contains(r'.*'+url+'.*')].index.tolist()
+			if "spankbang" in url or "sexual" in url:
+					ok = ok[:-1]
+					continue
+			index = df.index[df[0].str.contains(r'.*'+url+r'.*')].tolist()
 			if not len(index):
 				if "google" in url:
 					continue
@@ -38,11 +41,15 @@ def run(input_urls_filepath, local_filepath, global_filepath, target_dir):
 				not_found.append(url)
 				ok = ok[:-1]
 				continue
-			category = ( df[1][index[0]])
-			print(category)
-			# remove websites from these categories
-			if category in ["XED", "GAYL", "PORN", "PROV", "DATE", "MINF", "HUMR" "REL", "LGBT"] or "spankbang" in url:
-				ok = ok[:-1]
+			for ix in range(len(index)):
+				category = (df[1][index[int(ix)]]).upper()
+				# remove websites from these categories
+				for c in ["XED", "GAYL", "PORN", "PROV", "DATE", "MINF", "HUMR" "REL", "LGBT"]:
+					if category.upper() in c or c in category.upper():
+						ok = ok[:-1]
+						print("removed", category, url)
+						break
+
 
 	# Print urls that have not been found in source files.
 	for l in not_found:
