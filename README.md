@@ -40,6 +40,12 @@
 ### 2. Runner script
 - ```runscript.py [-h] -u URLS -p MINIOONI_PATH```, where URLS is the generated input file and MINIOONI_PATH leads to the location of the miniooni executable (```internal/miniooni```)
 
+- on remote machine: 
+  ```torsocks ssh -v kz-probe```
+  ```nohup python3 runscript.py -u URLS.txt -p ./miniooni &```
+  report holen: ```torsocks scp kz-probe:report.jsonl measurements/report.json```
+
+
 
 ## Postprocess
 - ```eval_better.py``` ?
