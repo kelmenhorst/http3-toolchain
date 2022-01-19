@@ -102,32 +102,33 @@ def make_urlgetter_command(entry):
     return cmd
 
 
-def main(urls, dnscache):
+def main(urls, dnscache, longm):
     sni_measure_input = {}
     keyidx = 0
     # first loop: test urls with local quad8
     tt = len(urls)
     c = 1
-    for u in urls:
-        print("First round (of 3): "+str(c)+"/"+str(tt))
-        c += 1
+    if longm:
+        for u in urls:
+            print(str(c)+"/"+str(tt))
+            c += 1
 
-        # QUIC
-        passed, entry = measure("quic_local",u)
-        if not passed:
-            sni_measure_input[keyidx] = dict(entry)
-            keyidx += 1
+            # QUIC
+            passed, entry = measure("quic_local",u)
+            if not passed:
+                sni_measure_input[keyidx] = dict(entry)
+                keyidx += 1
 
-        # TCP
-        passed, entry = measure("tcp_local",u)
-        if not passed:
-            sni_measure_input[keyidx] = dict(entry)
-            keyidx += 1
+            # TCP
+            passed, entry = measure("tcp_local",u)
+            if not passed:
+                sni_measure_input[keyidx] = dict(entry)
+                keyidx += 1
     
     # second loop: test urls with cached ip
     c = 1
     for u in urls:
-        print("Second round (of 3): "+str(c)+"/"+str(tt))
+        print(str(c)+"/"+str(tt))
         c += 1
 
         # QUIC
@@ -155,6 +156,7 @@ if __name__ == "__main__":
     # Add the arguments.
     argparser.add_argument("-u", "--urls", help="url list with resolved IPs (per line: url-----ip)", required=True)
     argparser.add_argument("-p", "--miniooni_path", help="path to miniooni executable", required=True)
+    argparser.add_argument("-l", "--long", help="the long measurement tries local DNS resolution with Google DNS", action='store_true')
     out = argparser.parse_args()
 
     miniooni = out.miniooni_path
@@ -172,4 +174,4 @@ if __name__ == "__main__":
             endpoints[ip] = None
 
     random.shuffle(urls)
-    main(urls, dnscache)
+    main(urls, dnscache, out.long)
