@@ -82,9 +82,9 @@ class Measurement:
 			self.sni = self.tk["tls_handshakes"][0]["server_name"]
 		except:
 			self.sni = urlparse(self.input_url).netloc
-			for o in data["options"]:
-				if "TLSServerName" in o:
-					self.sni = o.split("=")[1]
+			# for o in data["options"]:
+			# 	if "TLSServerName" in o:
+			# 		self.sni = o.split("=")[1]
 		
 	def error_type(self):
 		# if self.closedconn():
@@ -149,7 +149,7 @@ class Measurement:
 			return op
 
 
-def sankey(steps, data_1, data_2):
+def sankey(steps, data_1, data_2, outpath):
 	print("\n\n\nCorrelation Matrix (Sankey)\n")
 	global cc
 	global save_plot
@@ -208,7 +208,7 @@ def sankey(steps, data_1, data_2):
 	hv.extension('matplotlib')
 	sankey.opts(opts.Sankey(cmap=CMAP,labels='index', edge_color=dim(steps[0]).str(),node_color=dim('index').str(), label_text_font_size="xx-large", label_position="outer", node_width=50, show_values=True, fig_size=160))
 	# hv.output(sankey, fig='pdf', backend='matplotlib')
-	hv.Store.renderers['matplotlib'].save(sankey, "flows", 'pdf')
+	hv.Store.renderers['matplotlib'].save(sankey, outpath, 'pdf')
 	
 
 def tcpblocked_cli(data_t, data_q, keyword=None):
@@ -231,16 +231,21 @@ def tcpblocked_cli(data_t, data_q, keyword=None):
 
 def main(arg):
 	# Create the parser
-	argparser = argparse.ArgumentParser(description='List the content of a folder')
+	argparser = argparse.ArgumentParser(description='Visualizes correlation of two experiment steps.')
 
 	# Add the arguments
 	argparser.add_argument("-e", "--experiment", help="experiment name, default: urlgetter")
 	argparser.add_argument("-m", "--method", help="eval method")
 	argparser.add_argument("-sk", "--skiphandshake", help="skip filtering handshake timeout errors",action='store_true', default=False)
-	argparser.add_argument("-F", "--file", help="use specific input file")
+	argparser.add_argument("-F", "--file", help="use specific input file", required=True)
 	argparser.add_argument("-S", "--save", help="save plot")
 	argparser.add_argument("-s", "--steps", help="name(s) of (two) urlgetter step(s) to investigate", required=True)
+	argparser.add_argument("-o", "--outpath", help="path to store the output plot file")
 	out = argparser.parse_args()
+
+	outpath = out.outpath
+	if outpath is None:
+		outpath = "."
 
 	steps = out.steps.split(" ")
 
@@ -284,8 +289,6 @@ def main(arg):
 		
 		for l in lines:
 			data = json.loads(l)
-			print(data["test_keys"]["endpoints"][0]["tcp_connect"])
-			sys.exit()
 			if not "urlgetter_step" in data["annotations"]:
 				continue
 			
@@ -295,18 +298,15 @@ def main(arg):
 			except:
 				# print(data["input"], data["annotations"]["urlgetter_step"])
 				continue
-			url_ = data["input"]
+			
+			step = data["annotations"]["urlgetter_step"]
+			if not ("_inverse" in step):
+				url_ = data["input"]
 			if url_ not in inputs:
 				inputs.append(url_)
 			
-			step = data["annotations"]["urlgetter_step"]
-			step = step.split("_",1)
-			if len(step) > 1:
-				method = step[1]
-			else:
-				method = ""
 
-			mID = fileID + "-" + url_	
+			mID = fileID + "-" + url_ + data["probe_asn"]
 			msrmnt = Measurement(data, mID)
 			try:
 				while mID in dicts[msrmnt.step]:
@@ -315,6 +315,9 @@ def main(arg):
 				dicts[msrmnt.step][mID] = msrmnt
 			except:
 				pass
+
+	outpath = os.path.join(outpath, data["probe_asn"] + "_" + steps[0] + "_" + steps[1])
+	
 
 	for v,d in dicts.items():
 		frate = {k:v for (k,v) in d.items() if v.failure is not None}
@@ -330,7 +333,7 @@ def main(arg):
 		sys.exit()
 
 	tcpblocked_cli(*dicts.values())
-	sankey(steps, *dicts.values())
+	sankey(steps, *dicts.values(), outpath)
 
 		
 if __name__ == "__main__":

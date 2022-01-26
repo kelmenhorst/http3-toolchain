@@ -5,15 +5,15 @@ import sys
 import argparse
 import random
 
+sni_cloudflare = {}
+sni_cloudflare["sni_alt"] = "https://www.cloudflare.com"
+sni_cloudflare["sni_alt_name"] = "www.cloudflare.com"
+sni_cloudflare["sni_alt_cache"] = "104.16.124.96"
 
-# read the input urls file and put them in a list
-
-# TODO remove -n -N
-
-# miniooni = "/home/kelmenhorst/fellowship/release/probe-cli-3.13.0/internal/miniooni"
-sni_alt = "https://www.cloudflare.com"
-sni_alt_name = "www.cloudflare.com"
-sni_alt_cache = "104.16.124.96"
+sni_other = {}
+sni_other["sni_alt"] = "https://quic.nginx.org/"
+sni_other["sni_alt_name"] = "quic.nginx.org"
+sni_other["sni_alt_cache"] = "35.214.218.230"
 
 def run_command(entry):
     cmd = make_urlgetter_command(entry)
@@ -52,16 +52,24 @@ def measure(step, url):
 
 
 def measure_sni(step, entry):
+    sni = sni_other
     entry["step"] = entry["step"]+"_sni"
-    entry["sni"] = sni_alt_name
-    run_command(entry)
+    entry["sni"] = sni["sni_alt_name"]
+    out = run_command(entry)
+
+    # cloudflare QUIC rejects non-cloudflare SNIs. 
+    # If we encounter such an error we retry with the cloudflare SNI.
+    if "ssl_failed_handshake" in out:
+        sni = sni_cloudflare
+        entry["sni"] = sni["sni_alt_name"]
+        out = run_command(entry)
 
     entry["step"] = entry["step"]+"_inverse"
     entry["sni"] = entry["domain"]
-    entry["input_url"] = sni_alt
-    entry["domain"] = urlparse(sni_alt).netloc
+    entry["input_url"] = sni["sni_alt"]
+    entry["domain"] = urlparse(sni["sni_alt"]).netloc
     if "dnscache" in entry:
-        entry["dnscache"] = sni_alt_cache
+        entry["dnscache"] = sni["sni_alt_cache"]
     run_command(entry)
 
      
@@ -93,7 +101,7 @@ def make_urlgetter_command(entry):
     cmd.append("-A")
     cmd.append("urlgetter_step="+entry["step"])
 
-    cmd.append("-n") # no collector
+    # cmd.append("-n") # no collector
     
     if "no_report" in entry:
         cmd.append("-N")
