@@ -159,11 +159,15 @@ def sankey(steps, data_1, data_2, outpath):
 	for k,t in data_1.items():
 		if not k in data_2:
 			continue
-		e = t.error_type()
+		if t.error_type() in IGNORE_ERR:
+			continue
+		e_t = t.error_type()
 		q = data_2[k]
-		failures_1.insert(0, e)
-		e = q.error_type()+ " "
-		failures_2.insert(0,e)
+		if q.error_type() in IGNORE_ERR:
+			continue
+		e_q = q.error_type()+ " "
+		failures_1.insert(0, e_t)
+		failures_2.insert(0,e_q)
 		
 	n = len(failures_1)
 
@@ -191,11 +195,11 @@ def sankey(steps, data_1, data_2, outpath):
 	for index, row in df_links.iterrows():
 		v = totals_t[row[steps[0]]]
 		q = v*100/n
-		if q < 1:
+		if q < 1.5:
 			df_links.at[index,steps[0]] = 'other'
 		v = totals_q[row[steps[1]]]
 		q = v*100/n
-		if q < 1:
+		if q < 1.5:
 			df_links.at[index,steps[1]] = 'other '
 	
 	print(df_links)
@@ -287,11 +291,10 @@ def main(arg):
 			with open(f, 'r') as dump:
 				lines = dump.readlines()
 		
-		for l in lines:
+		for i,l in enumerate(lines):
 			data = json.loads(l)
 			if not "urlgetter_step" in data["annotations"]:
 				continue
-			
 			
 			try:
 				probed_ip = data["test_keys"]["queries"][0]["answers"][0]["ipv4"]
@@ -300,6 +303,12 @@ def main(arg):
 				continue
 			
 			step = data["annotations"]["urlgetter_step"]
+			if i+1 < len(lines):
+				next_data = json.loads(lines[i+1])
+				# if the measurement was repeated, ignore this one
+				if next_data["annotations"]["urlgetter_step"] == step:
+					continue
+
 			if not ("_inverse" in step):
 				url_ = data["input"]
 			if url_ not in inputs:
