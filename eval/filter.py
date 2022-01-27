@@ -67,7 +67,8 @@ def main(arg):
                 print(data["input"], data["annotations"]["urlgetter_step"], data["test_keys"]["failure"])
                 print(" ")
 
-    print(cummulation)
+    if out.cummulate:
+        print(cummulation)
 
         
 if __name__ == "__main__":

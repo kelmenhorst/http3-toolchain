@@ -238,11 +238,7 @@ def main(arg):
 	argparser = argparse.ArgumentParser(description='Visualizes correlation of two experiment steps.')
 
 	# Add the arguments
-	argparser.add_argument("-e", "--experiment", help="experiment name, default: urlgetter")
-	argparser.add_argument("-m", "--method", help="eval method")
-	argparser.add_argument("-sk", "--skiphandshake", help="skip filtering handshake timeout errors",action='store_true', default=False)
 	argparser.add_argument("-F", "--file", help="use specific input file", required=True)
-	argparser.add_argument("-S", "--save", help="save plot")
 	argparser.add_argument("-s", "--steps", help="name(s) of (two) urlgetter step(s) to investigate", required=True)
 	argparser.add_argument("-o", "--outpath", help="path to store the output plot file")
 	out = argparser.parse_args()
@@ -252,23 +248,6 @@ def main(arg):
 		outpath = "."
 
 	steps = out.steps.split(" ")
-
-	experiment = out.experiment
-	if experiment is None:
-		experiment = "urlgetter"
-	
-	global mm 
-	mm = out.method
-	global save_plot 
-	save_plot = None
-	
-	if out.save:
-		size = out.save.split(" ")
-		if len(size) == 1:
-			save_plot = (float(size[0]),float(size[0])*2/3)
-		elif len(size) == 2:
-			save_plot = (float(size[0]), float(size[1]))
-		print(save_plot)
 		
 	files = [out.file]
 	if os.path.isdir(out.file):

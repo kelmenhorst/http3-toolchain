@@ -35,6 +35,8 @@
 - run ```resolve.py [-h] -i INPUTFILE -p PREFIX -t TARGETDIR``` 
 - result: ```targetdir/[PREFIX]_cacheddns.txt``` with lines like this: ```url-----ip```
 
+<br>
+<br>
 
 ## Run the measurement
 
@@ -48,3 +50,29 @@
 - on remote machine: 
   ```torsocks ssh HOST```
   ```nohup python3 runscript.py -u URLS.txt -p ./miniooni &```
+
+<br>
+<br>
+
+## Examine and visualize the results
+
+### Filter measurements
+**Print URL, step and failure type of filtered measurements**
+- ```filter.py [-h] -F FILE [-s STEPS] [-u INPUTURL] [-ip IP] [-t FAILURETYPE] [-f] [-c] ```
+- use filter ```-s``` to only examine certain measurement steps, e.g. "tcp_cached"
+- use filter ```-u``` to investigate measurements of a specific URL
+- use filter ```-ip``` to investigate measurements of a specific IP address
+- use filter ```-t``` to only examine certain failure types, e.g. "TLS-hs-to"
+- use filter ```-f``` to only examine failed measurements
+- use ```-c``` to print cummulative result at the end
+
+
+### Visualize data correlation
+***Generate a sankey diagram that depicts the correlation between different urlgetter measurement steps**
+- ```eval.py [-h] -F FILE -s STEPS [-o OUTPATH]```
+- the file(s) to be evaluated are defined by the ```-F``` parameter; this can be a file or a folder
+- use ```-s``` to define the 2 steps that are compared, e.g. "tcp_cached quic_cached"
+- to define the output directory use the ```-o``` option
+
+
+  
