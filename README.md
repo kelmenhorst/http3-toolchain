@@ -40,7 +40,7 @@
 
 ### 1. Download latest probe-cli release
 - https://github.com/ooni/probe-cli/releases
-- ```probe-cli/internal¼ go build ./cmd/miniooni```
+- ```probe-cli/internal$ go build ./cmd/miniooni```
 
 ### 2. Runner script
 - ```runscript.py [-h] -u URLS -p MINIOONI_PATH```, where URLS is the generated input file and MINIOONI_PATH leads to the location of the miniooni executable (```internal/miniooni```)
