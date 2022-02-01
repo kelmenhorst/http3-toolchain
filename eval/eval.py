@@ -18,6 +18,7 @@ from bokeh import io
 import holoviews as hv
 from holoviews import opts, dim
 hv.extension('bokeh')
+from datetime import datetime
 
 SMALL_SIZE = 8
 MEDIUM_SIZE = 10
@@ -62,6 +63,8 @@ CMAP = {
 
 IGNORE_ERR = ["quic-incompatible-version", "http", "Read on stream 0 canceled with error code 268", "FRAME_ENCODING_ERROR"]
 IGNORE_SMALLER_VALUES = 0
+
+timestamp_fmt = '%Y-%m-%d %H:%M:%S'
 
 class Measurement: 
 	def __init__(self, data, id):
@@ -149,7 +152,7 @@ class Measurement:
 			return op
 
 
-def sankey(steps, data_1, data_2, outpath):
+def sankey(steps, data_1, data_2, outpath, evaluation):
 	print("\n\n\nCorrelation Matrix (Sankey)\n")
 	global cc
 	global save_plot
@@ -195,16 +198,17 @@ def sankey(steps, data_1, data_2, outpath):
 	for index, row in df_links.iterrows():
 		v = totals_t[row[steps[0]]]
 		q = v*100/n
-		if q < 1.5:
+		if q < 0.5:
 			df_links.at[index,steps[0]] = 'other'
 		v = totals_q[row[steps[1]]]
 		q = v*100/n
-		if q < 1.5:
+		if q < 0.5:
 			df_links.at[index,steps[1]] = 'other '
 	
 	print(df_links)
 	df_links = df_links.groupby(steps).agg({'value': 'sum'}).apply(lambda x: x*100/n)
 	print(df_links)
+	evaluation["matrix"] = df_links
 
 	value_dim = hv.Dimension('value', unit='%', value_format=lambda x: '%.1f' % x)
 	sankey = hv.Sankey(df_links, kdims=steps, vdims=value_dim)
@@ -214,15 +218,21 @@ def sankey(steps, data_1, data_2, outpath):
 	# hv.output(sankey, fig='pdf', backend='matplotlib')
 	hv.Store.renderers['matplotlib'].save(sankey, outpath, 'pdf')
 	
+	return evaluation
+	
 
-def tcpblocked_cli(data_t, data_q, keyword=None):
-	print(type(data_q))
+def conditional_eval(data_t, data_q, evaluation):
 	failures = [v.error_type() for (k,v) in data_t.items() if v.failure is not None]
 	u_failures = list(dict.fromkeys(failures))
+
+	evaluation["conditional_eval"] = {}
 
 	for f in u_failures:
 		q_errors = {}
 		print("\n"+f, failures.count(f))
+		evaluation["conditional_eval"][f] = {}
+		evaluation["conditional_eval"][f]["n"] = failures.count(f)
+
 		for id, d in data_t.items():
 			if d.error_type() == f:
 				try:
@@ -231,6 +241,22 @@ def tcpblocked_cli(data_t, data_q, keyword=None):
 					q_errors[data_q[id].error_type()] = qn + 1
 				except KeyError as e:
 					pass
+		
+		evaluation["conditional_eval"][f]["step_2"] = q_errors
+	return evaluation
+
+
+def only_err(data_1, data_2):
+	failure_keys_1 = [k for (k,v) in data_1.items() if v.failure is not None]
+	failure_keys_2 = [k for (k,v) in data_2.items() if v.failure is not None]
+
+	merged_keys = failure_keys_1
+	for k in failure_keys_2:
+		if k not in merged_keys:
+			merged_keys.append(k)
+	
+	return {k:v for (k,v) in data_1.items() if k in merged_keys}, {k:v for (k,v) in data_2.items() if k in merged_keys}
+
 
 
 def main(arg):
@@ -241,6 +267,9 @@ def main(arg):
 	argparser.add_argument("-F", "--file", help="use specific input file", required=True)
 	argparser.add_argument("-s", "--steps", help="name(s) of (two) urlgetter step(s) to investigate", required=True)
 	argparser.add_argument("-o", "--outpath", help="path to store the output plot file")
+	argparser.add_argument("-e", "--onlyerrors", help="only consider failure cases", action="store_true")
+	argparser.add_argument("-a", "--asn", help="asn")
+	argparser.add_argument("-c", "--sanitycheck", help="report file with sanity check measurement")
 	out = argparser.parse_args()
 
 	outpath = out.outpath
@@ -248,20 +277,43 @@ def main(arg):
 		outpath = "."
 
 	steps = out.steps.split(" ")
+
+	unstable_hosts = {}
+	if out.sanitycheck:
+		lines = []
+		with open(out.sanitycheck, "r") as scheck:
+			lines = scheck.readlines()
+		for l in lines:
+			data = json.loads(l)
+			if data["test_keys"]["failure"] is not None and not "cloudflare" in data["input"]:
+				unstable_hosts[data["input"]] = True
+	print("Unstable hosts:", unstable_hosts.keys())
+
+	evaluation = {}
+
 		
 	files = [out.file]
 	if os.path.isdir(out.file):
 		files = glob.glob(out.file+"/*.json*")
 	print("Processing files...", files, "\n")
 
+	possible_asns = {}
 
-	inputs = []
+
+	inputs = {}
 	dicts = {}
+	min_time_stamp = None
+	max_time_stamp = None
 	for step in steps:
 		dicts[step] = {}
 
 	for f in files:
-		fileID = f.split("/")[-1].split("_")[0]
+		if "_evaluation.json" in f:
+			continue
+		if "sanity" in f or "oldlist" in f:
+			continue
+		fileID = f.split("/")[-1][0:8]
+		print(fileID)
 		lines = []
 		try:
 			with gzip.open(f, 'r') as dump:
@@ -272,6 +324,11 @@ def main(arg):
 		
 		for i,l in enumerate(lines):
 			data = json.loads(l)
+			
+			possible_asns[data["probe_asn"]] = True
+			
+			if out.asn and data["probe_asn"] != out.asn:
+				continue
 			if not "urlgetter_step" in data["annotations"]:
 				continue
 			
@@ -290,21 +347,45 @@ def main(arg):
 
 			if not ("_inverse" in step):
 				url_ = data["input"]
-			if url_ not in inputs:
-				inputs.append(url_)
+			if url_ in unstable_hosts:
+				continue
 			
 
 			mID = fileID + "-" + url_ + data["probe_asn"]
 			msrmnt = Measurement(data, mID)
-			try:
-				while mID in dicts[msrmnt.step]:
-					print("already in dict", mID)
-					mID += "(1)"
-				dicts[msrmnt.step][mID] = msrmnt
-			except:
-				pass
+			
+			# disregard DNS failures
+			if msrmnt.failed_op == "resolve":
+				continue
+			if msrmnt.step not in dicts:
+				continue
+			if mID in dicts[msrmnt.step]:
+				# print("already in dict", mID, data["measurement_start_time"], dicts[msrmnt.step][mID].data["measurement_start_time"], msrmnt.failure, dicts[msrmnt.step][mID].failure)
+				continue
 
-	outpath = os.path.join(outpath, data["probe_asn"] + "_" + steps[0] + "_" + steps[1])
+			dicts[msrmnt.step][mID] = msrmnt
+
+			tstamp = datetime.strptime(data["measurement_start_time"], timestamp_fmt)
+			if max_time_stamp is None or tstamp > max_time_stamp:
+				max_time_stamp = tstamp
+			if min_time_stamp is None or tstamp < min_time_stamp:
+				min_time_stamp = tstamp
+			if msrmnt.step == steps[0]:
+				if url_ not in inputs:
+					inputs[url_] = [data["measurement_start_time"]]
+				else:
+					inputs[url_].append(data["measurement_start_time"])
+
+	outpath = os.path.join(outpath, out.asn + "_" + steps[0] + "_" + steps[1])
+	if out.sanitycheck:
+		outpath += "_checked"
+
+
+	evaluation["test_list"] = inputs
+	evaluation["test_list_length"] = len(inputs.keys())
+	evaluation["asn"] = list(possible_asns.keys())
+	evaluation["time_span"] = [min_time_stamp, max_time_stamp]
+
 	
 
 	for v,d in dicts.items():
@@ -313,15 +394,29 @@ def main(arg):
 		failures = [v.error_type() for v in frate.values()]
 		u_failures = list(dict.fromkeys(failures))
 
+		evaluation[v] = {
+			"n": len(d),
+			"failed": len(frate),
+			"failure_rate": len(frate)/float(len(d)),
+		}
+
 		for f in u_failures:
 			q_errors = {}
 			print("--",f, failures.count(f))
 
 	if len(steps) == 1:
 		sys.exit()
+	
+	dict_1, dict_2 = dicts.values()
+	if out.onlyerrors:
+		dict_1, dict_2 = only_err(dict_1, dict_2)
 
-	tcpblocked_cli(*dicts.values())
-	sankey(steps, *dicts.values(), outpath)
+	evaluation = conditional_eval(dict_1, dict_2, evaluation)
+	evaluation = sankey(steps, dict_1, dict_2, outpath, evaluation)
+
+	with open(outpath +"_evaluation.json", "w") as e:
+		json.dump(evaluation, e, indent=4, sort_keys=True, default=str)
+
 
 		
 if __name__ == "__main__":
