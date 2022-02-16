@@ -17,7 +17,6 @@ def main(argv):
     # Create the parser.
     argparser = argparse.ArgumentParser(description='Handles 5 preprocessing steps. (check out README)')
     # Add the arguments.
-    argparser.add_argument("-m", "--miniooni_path", help="path to miniooni executable", required=True)
     argparser.add_argument("-l", "--listdir", help="path to test-lists/ directory", required=True)
     argparser.add_argument("-cc", "--countrycode", help="country code", required=True)
     argparser.add_argument("-t", "--targetdir", help="target directory to store generated input files", required=True)
@@ -38,12 +37,12 @@ def main(argv):
 
     print("Step 1: Done.")
 
-    print("Step 2: Run miniooni urlgetter with HTTP3Enabled=true and inspect output to filter url list for HTTP3 support...")
+    print("Step 2: HTTP Get the input websites and inspect the Alt-Svc header for h3 support announcement...")
 
     # check_http3.py
     targetdir = os.path.join(args.targetdir,"http3")
     Path(targetdir).mkdir(parents=True, exist_ok=True)
-    check_http3.run(urls_file, args.miniooni_path, targetdir, args.verbose)
+    check_http3.run(urls_file, targetdir, args.verbose)
     http3_file = os.path.join(targetdir, cc+"_http3.txt")
     # ./http3/cc_http3.txt
 

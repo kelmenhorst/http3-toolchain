@@ -22,12 +22,15 @@ def run(input_file, targetdir, verbose=True):
             if not "Alt-Svc" in r.headers:
                 continue
             alt_svc = r.headers["Alt-Svc"]
+            final_url = r.url
+            if final_url.endswith("%0A"):
+                final_url = final_url.replace("%0A", "")
             if "h3=" in alt_svc:
                 with open(out_name, "a+") as out_file:
-                    out_file.write(url)
+                    out_file.write(final_url+"\n") # r.url is the URL of the final response (after redirects)
             elif "h3-29=" in alt_svc:
                 with open(out_name, "a+") as out_file:
-                    out_file.write(url)
+                    out_file.write(final_url+"\n") # r.url is the URL of the final response (after redirects)
                 
 
 def main(argv):
