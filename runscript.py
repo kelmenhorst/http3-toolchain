@@ -122,10 +122,12 @@ def make_quicping_command(entry):
 
     cmd.append("-i")
     if "dnscache" in entry:
-        print(entry["dnscache"])
         cmd.append(entry["dnscache"])
     else:
         cmd.append(entry["input_url"])
+    
+    cmd.append("-O")
+    cmd.append("Repetitions=2")
 
     cmd.append("-n") # no collector
     
@@ -176,7 +178,6 @@ def main(urls, dnscache, longm):
     for i,l in enumerate(lines):
         data = json.loads(l)
         input_url = data["input"]
-        print(data["test_keys"])
         failure = data["test_keys"]["failure"]
         if failure is not None:
             sni_measure_input.append(all_quic[input_url])
