@@ -106,16 +106,16 @@ class URLGetterMeasurement(Measurement):
 	
 	# when there is a redirect, another DNS resolve step is necessary
 	# this resolve can be manipulated / censored
-	def check_failed_with_redirect(self):
-		if self.tk["failed_operation"] is None:
-			return None
+	def unexpectedly_ran_resolve(self):
 		events = self.tk["network_events"]
 		resolve = False
 		for i, e in enumerate(events):
 			if e["operation"] == "resolve_start":
-				# when the cache is used, resolve_done comes immediately after resolve_start
+				# when the cache is used, resolve_done should come immediately after resolve_start
 				if events[i+1]["operation"] != "resolve_done":
 					print("possible DNS manipulation", self.input_url)
+					return True
+		return False
 	
 	# get response server
 	def get_server(self):
