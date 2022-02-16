@@ -160,6 +160,9 @@ def main(arg):
 			# mID = fileID + "-" + url_ + data["probe_asn"] + data["test_name"]
 			mID = Measurement.mID(data, fileID, url_)
 			msrmnt = URLGetterMeasurement(data, mID)
+
+			if msrmnt.unexpectedly_ran_resolve():
+				continue
 			
 			# disregard DNS failures
 			if msrmnt.failed_op == "resolve":
