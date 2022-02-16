@@ -3,7 +3,7 @@
 ## Input generation
 
 ### 0. Run all steps.
-- ```input_generator.py [-h] -m MINIOONI_PATH -l LISTDIR -cc COUNTRYCODE -t TARGETDIR [-g] [-c COLUMN] [-v]```
+- ```input_generator.py [-h] -l LISTDIR -cc COUNTRYCODE -t TARGETDIR [-g] [-c COLUMN] [-v]```
 - use ```-g``` to use both local country list as well as global list (which must be generated first)
 - result: ```targetdir/<COUNTRYCODE>[_global]_http3_filtered_cacheddns.txt``` with lines like this: ```url-----ip```
 
