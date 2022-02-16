@@ -29,7 +29,7 @@ def run(countrycode, targetdir, rootdir, column):
 				url = "https://"+url
 			with open(outputfile, "a") as ofile:
 				if url.startswith("http://"):
-					url = url.replace("http://", "https://")
+					url = url.replace("http://", "https://", 1)
 				ofile.write(url+"\n")
 
 

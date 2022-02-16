@@ -24,7 +24,7 @@ def run(files):
 	final_uniques = []
 	for u in uniques:
 		new_u = u.replace("/\n", "\n")
-		new_u = u.replace("https://", "")
+		new_u = u.replace("https://", "", 1)
 		new_u = u.replace("www.", "")
 		if new_u in cropped_uniques:
 			print(new_u)

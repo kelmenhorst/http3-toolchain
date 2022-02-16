@@ -27,8 +27,8 @@ def run(input_urls_filepath, local_filepath, global_filepath, target_dir):
 			ok.append(url)
 			if url.endswith("/"):
 				url = url[:-1]
-			url = url.replace("https://", "")
-			if "spankbang" in url or "sexual" in url:
+			url = url.replace("https://", "", 1)
+			if "spankbang" in url or "sexual" in url or "lushstories" in url:
 					ok = ok[:-1]
 					continue
 			index = df.index[df[0].str.contains(r'.*'+url+r'.*')].tolist()
