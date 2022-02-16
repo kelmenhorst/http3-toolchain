@@ -9,7 +9,7 @@ import pandas as pd
 from datetime import datetime
 import numpy as np
 from consistency import consistency
-from measurement import URLGetterMeasurement
+from measurement import Measurement, URLGetterMeasurement
 from sankey import sankey
 
 import ipinfo
