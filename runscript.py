@@ -129,6 +129,9 @@ def make_quicping_command(entry):
     cmd.append("-O")
     cmd.append("Repetitions=2")
 
+    cmd.append("-A")
+    cmd.append("measurement_url="+entry["input_url"])
+
     cmd.append("-n") # no collector
     
     if "no_report" in entry:
@@ -182,7 +185,9 @@ def main(urls, dnscache, longm):
         if failure is not None:
             sni_measure_input.append(all_quic[input_url])
             sni_measure_input.append(all_tcp[input_url])
-            quicping_measure_input.append(all_quic[input_url].copy())
+            step = data["annotations"]["urlgetter_step"]
+            if "quic" in step:
+                quicping_measure_input.append(all_quic[input_url].copy())
 
 
     tt = len(sni_measure_input)
