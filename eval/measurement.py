@@ -3,8 +3,8 @@ import re
 
 class Measurement:
 	@staticmethod
-	def mID(data, fileID, url):
-		return fileID + "-" + url + data["probe_asn"] + data["test_name"]
+	def mID(data, fileID, i):
+		return fileID + "-" + data["probe_asn"] + "--" + i 
 		
 	def __init__(self, data, id):
 		self.data = data
@@ -21,6 +21,38 @@ class QuicpingMeasurement(Measurement):
 		Measurement.__init__(self, data, id) 
 		self.domain = self.tk["domain"]
 		self.pings = self.tk["pings"]
+		self.step = "quicping"
+		self.failure = None
+		pingresults = [p["failure"] for p in self.pings]
+		if None in pingresults:
+			self.failure = None
+		else:
+			self.failure = pingresults[0]
+		self.failed_op = None
+		if self.failure is not None:
+			self.failed_op = "ping"
+		self.probe_ip = data["input"]
+
+
+	def error_type(self):
+		if self.failure is None:
+			return "success"
+		if "connect: no route to host" in self.failure:
+			return "route-err"
+		elif self.failure == "generic_timeout_error":
+			return "to"
+		elif "No recent network activity" in self.failure:
+				return "conn-to"
+		elif "eof" in self.failure:
+			return "EOF-err"
+		elif "PROTOCOL_ERROR" in self.failure:
+			return "proto-err"
+		elif "unknown_failure" in self.failure:
+			if "tls:" in self.failure:
+				return "TLS-err"
+			return self.failure.split(":")[-1].strip()
+		return self.failure.replace("_", "-").replace("connection", "conn")
+
 
 class URLGetterMeasurement(Measurement): 
 	def __init__(self, data, id):
@@ -33,6 +65,7 @@ class URLGetterMeasurement(Measurement):
 		try:
 			self.probe_ip = self.tk["queries"][0]["answers"][0]["ipv4"]
 		except:
+			self.probe_ip = ""
 			pass
 		try:
 			self.sni = self.tk["tls_handshakes"][0]["server_name"]
@@ -113,7 +146,7 @@ class URLGetterMeasurement(Measurement):
 			if e["operation"] == "resolve_start":
 				# when the cache is used, resolve_done should come immediately after resolve_start
 				if events[i+1]["operation"] != "resolve_done":
-					print("possible DNS manipulation", self.input_url)
+					print("possible DNS manipulation", self.input_url, self.failure)
 					return True
 		return False
 	
