@@ -1,10 +1,10 @@
 from visualize import plt
 import numpy as np
 
-def consistency(_data_1, _data_2, only_err=False):
+def consistency(_data_1, _data_2, stepnames, outpath, only_err=False):
 	# s = ['https://doordash.com', 'https://thehindu.com', 'https://tandfonline.com', 'https://mdpi.com', 'https://pars.host/']
-	data_1 = {k:v for (k,v) in _data_1.items() if  not ("dnscache_example" in k or "dnscache_cloudflare" in k or "dnscache_target" in k or "dnscache_" in k)}
-	data_2 = {k:v for (k,v) in _data_2.items() if not ("dnscache_example" in k or "dnscache_cloudflare" in k or "dnscache_target" in k)}
+	data_1 = {k:v for (k,v) in _data_1.items()}
+	data_2 = {k:v for (k,v) in _data_2.items()}
 
 	plotdata = []
 	for i,data in enumerate([data_1, data_2]):
@@ -37,38 +37,7 @@ def consistency(_data_1, _data_2, only_err=False):
 		print(len(cons))
 		plotdata.append(cons)
 		print("O",cons)
-
-	fig = plt.figure()
 	
-	fig.set_size_inches((3.77, 2.12))
-	outliers = [[],[]]
-	ct = 0
-
-	for i, a in enumerate(plotdata[0]):
-		b = plotdata[1][i]
-		if not (a == 100):
-			outliers[0].append(a)
-		if not (b == 100):
-			outliers[1].append(b)
-			
-		else:
-			ct += 1
-	
-	plt.plot(outliers[0], linestyle='none', marker='|', color="powderblue", markersize=7, mew=2)
-	plt.plot(outliers[1], linestyle='none', marker='.', color="lightcoral", alpha=0.5, markersize=6, mew=1.5)
-	
-	# plt.ylim(0, 105)
-	# plt.xlim(left=-1)
-	plt.xticks(np.arange(0, len(outliers[0]),1))
-	# plt.ylim(bottom=61)
-	plt.xlabel("Domain IDs \n*cleaned from domains with result consistency = 100%")
-	plt.legend(["QUIC", "TCP/TLS"])
-	plt.ylabel("Result consistency [%]")
-	plt.tight_layout()
-	
-	
-	# plt.savefig("../plots/"+cc+"_"+dd+"_consistency_qerr2.pdf")
-	plt.show()
 
 	hx, hy, _ = plt.hist(plotdata[0],bins=20,histtype='step',cumulative=True, density=True)
 	hx_t, hy_t, _ = plt.hist(plotdata[1],bins=20,histtype='step',cumulative=True, density=True)
@@ -86,12 +55,12 @@ def consistency(_data_1, _data_2, only_err=False):
 	plt.ylabel("% of hosts")
 	plt.yticks([20,40,60,80])
 	plt.xticks([70,80,90,100])
-	plt.legend(["QUIC", "TCP/TLS"])
+	plt.legend([stepnames[0], stepnames[1]])
 	plt.xlabel("Result consistency [%]")
 	plt.ylim(0,100)
 	plt.tight_layout()
 	# plt.title("Empirical CDF")
 
 	
-	# plt.savefig("../plots/"+cc+"_"+dd+"_consistency_cdf.pdf")
-	plt.show()
+	plt.savefig(outpath+"_consistency.pdf")
+	# plt.show()

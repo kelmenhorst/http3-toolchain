@@ -224,7 +224,7 @@ def main(arg):
 	evaluation = conditional_eval(dict_1, dict_2, evaluation)
 	evaluation = sankey(steps, dict_1, dict_2, outpath, evaluation)
 
-	# consistency(dict_1, dict_2)
+	# consistency(dict_1, dict_2, [steps[0].replace("_cached", ""),steps[1].replace("_cached", "")], outpath)
 
 	with open(outpath +"_evaluation.json", "w") as e:
 		json.dump(evaluation, e, indent=4, sort_keys=True, default=str)
