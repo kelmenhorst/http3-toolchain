@@ -9,6 +9,17 @@ from measurement import Measurement, URLGetterMeasurement, QuicpingMeasurement
 
 STEPS = {}
 
+def add(datastructure, item):
+    if type(datastructure) is dict:
+        if item in datastructure:
+            datastructure[item] += 1
+            return
+        datastructure[item] = 1
+        return
+    if type(datastructure) is list:
+        datastructure.append(item)
+        return
+
 class stepfilter:
     def __init__(self, f):
         self.steps = {}
@@ -36,17 +47,30 @@ class stepfilter:
         ms = measurement.step.lower()
         if ms not in self.steps:
             return False
-        mf = measurement.error_type().lower()
-        if "failure" in self.steps[ms] and measurement.failure is not None:
+        if len(self.steps[ms]) == 0:
             return True
-        if len(self.steps[ms]) and mf not in self.steps[ms]:
+
+        mf = measurement.error_type().lower()
+        if "failure" in self.steps[ms] and measurement.failure is None:
+            return False
+        if "success" in self.steps[ms] and measurement.failure is not None:
+            return False
+        if not (mf in self.steps[ms] or (measurement.failure is not None and "failure" in self.steps[ms])):
             return False
         if self.AND:
             for s in self.steps:
                 if s == ms:
                     continue
-                if not (STEPS[s][measurement.id].error_type() in self.steps[s] or (STEPS[s][measurement.id].failure is not None and "failure" in self.steps[s])):
+                omeasurement = STEPS[s][measurement.id]
+                of = omeasurement.error_type().lower()
+                if "failure" in self.steps[s] and omeasurement.failure is None:
                     return False
+                if "success" in self.steps[s] and omeasurement.failure is not None:
+                    return False
+                if not (of in self.steps[s] or (omeasurement.failure is not None and "failure" in self.steps[s])):
+                    return False
+                # if not (STEPS[s][measurement.id].error_type() in self.steps[s] or (STEPS[s][measurement.id].failure is not None and "failure" in self.steps[s])):
+                #     return False
         return True
 
 class urlfilter:
@@ -102,10 +126,17 @@ def main(out):
         files = glob.glob(out.file+"/2*.json*")
     print("Processing files...", files, "\n")
 
-    cummulation = {}
+    cummulate = False
+    if out.dict:
+        cummulation = {}
+        cummulate = True
+    if out.list:
+        cummulation = []
+        cummulate = True
+
 
     for f in files:
-        fileID = f.split("/")[-1].split("_")[0]
+        fileID = f.split("/")[-1]
         lines = []
         try:
             with gzip.open(f, 'r') as dump:
@@ -116,8 +147,16 @@ def main(out):
         
         for i,l in enumerate(lines):
             data = json.loads(l)
+            if i+1 < len(lines):
+                next_data = json.loads(lines[i+1])
+                # if the measurement was repeated, ignore this one
+                if "urlgetter_step" in next_data["annotations"] and next_data["annotations"]["urlgetter_step"] == data["annotations"]["urlgetter_step"]:
+                    continue
+
             measurement = None
             id = Measurement.mID(data, fileID, data["input"])
+            if out.experiment.lower() != data["test_name"]:
+                continue
             if out.experiment.lower() == "urlgetter":
                 measurement = URLGetterMeasurement(data, id)
             elif out.experiment.lower() == "quicping":
@@ -129,12 +168,9 @@ def main(out):
                 STEPS[measurement.step] = {}
             STEPS[measurement.step][id] = measurement
 
-            if i+1 < len(lines):
-                next_data = json.loads(lines[i+1])
-                # if the measurement was repeated, ignore this one
-                if next_data["annotations"]["urlgetter_step"] == measurement.step:
-                    continue
-            
+       
+    for k,step in STEPS.items():
+        for id, measurement in step.items():      
             if not pass_filters(filters, measurement):
                 continue
 
@@ -151,17 +187,15 @@ def main(out):
                     continue
 
 
-            if out.cummulate:
-                if measurement.input_url not in cummulation:
-                    cummulation[measurement.input_url] = 1
-                else:
-                    cummulation[measurement.input_url] += 1
+            if cummulate:
+                add(cummulation, measurement.input_url)
+        
             else:
                 print(measurement.input_url, measurement.step, measurement.failure, measurement.failed_op)
                 print(" ")
 
-    if out.cummulate:
-        print(cummulation)
+    if cummulate:
+        print(cummulation, len(cummulation))
         return cummulation
     
     return None
@@ -179,7 +213,8 @@ if __name__ == "__main__":
     argparser.add_argument("-t", "--failuretype", help="failure type")
     argparser.add_argument("-f", "--failure", help="failure", action='store_true')
     argparser.add_argument("-S", "--success", help="success", action='store_true')
-    argparser.add_argument("-c", "--cummulate", help="cummulate", action='store_true')
+    argparser.add_argument("-d", "--dict", help="cummulate to dictionary", action='store_true')
+    argparser.add_argument("-l", "--list", help="cummulate to list", action='store_true')
     argparser.add_argument("-m", "--server", help="the response server, e.g. Litespeed")
     argparser.add_argument("-e", "--experiment", help="the ooni experiment name", required=True)
     out = argparser.parse_args()
