@@ -1,6 +1,6 @@
 # Workflow: HTTP/3 censorship measurements with URLGETTER
 
-## Input generation
+## [Input generation](preprocessing)
 
 ### 0. Run all steps.
 - ```input_generator.py [-h] -l LISTDIR -cc COUNTRYCODE -t TARGETDIR [-g] [-c COLUMN] [-v]```
@@ -38,7 +38,7 @@
 <br>
 <br>
 
-## Run the measurement
+## [Run the measurement](runscript.py)
 
 ### 1. Download latest probe-cli release
 - https://github.com/ooni/probe-cli/releases
@@ -54,7 +54,7 @@
 <br>
 <br>
 
-## Examine and visualize the results
+## [Examine and visualize the results](evaluation)
 
 ### Filter measurements
 **Print URL, step and failure type of filtered measurements**
