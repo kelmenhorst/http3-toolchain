@@ -9,7 +9,7 @@ import pandas as pd
 from datetime import datetime
 import numpy as np
 from consistency import consistency
-from measurement import Measurement, URLGetterMeasurement
+from measurement import Measurement, URLGetterMeasurement, QuicpingMeasurement
 from sankey import sankey
 
 import ipinfo
@@ -25,7 +25,6 @@ def get_ipinfo(ip):
 def conditional_eval(data_t, data_q, evaluation):
 	failures = [v.error_type() for (k,v) in data_t.items() if v.failure is not None]
 	u_failures = list(dict.fromkeys(failures))
-	u_failures.append("success")
 
 	evaluation["conditional_eval"] = {}
 
@@ -43,7 +42,6 @@ def conditional_eval(data_t, data_q, evaluation):
 					ipinfo = get_ipinfo(data_q[id].probe_ip)
 					qn.append(data_q[id].input_url+" "+data_q[id].probe_ip + " "+ ipinfo.country + " " + ipinfo.org + str(data_q[id].tk["requests"][-1]["response"]["code"]))
 					q_errors[data_q[id].error_type()] = qn
-					print(data_q[id].get_server())
 					
 				except KeyError as e:
 					pass
@@ -53,15 +51,8 @@ def conditional_eval(data_t, data_q, evaluation):
 
 
 def only_err(data_1, data_2):
-	failure_keys_1 = [k for (k,v) in data_1.items() if v.failure is not None]
-	failure_keys_2 = [k for (k,v) in data_2.items() if v.failure is not None]
-
-	merged_keys = failure_keys_1
-	for k in failure_keys_2:
-		if k not in merged_keys:
-			merged_keys.append(k)
-	
-	return {k:v for (k,v) in data_1.items() if k in merged_keys}, {k:v for (k,v) in data_2.items() if k in merged_keys}
+	d_1 = {k:v for (k,v) in data_1.items() if v.failure is not None}
+	return d_1, data_2
 
 
 
@@ -91,7 +82,7 @@ def main(arg):
 			lines = scheck.readlines()
 		for l in lines:
 			data = json.loads(l)
-			if data["test_keys"]["failure"] is not None and not "cloudflare" in data["input"]:
+			if data["test_keys"]["failure"] is not None and not ("cloudflare" in data["input"] or "quic.nginx.org" in data["input"] or "plus.im" in data["input"]):
 				unstable_hosts[data["input"]] = True
 	print("Unstable hosts:", unstable_hosts.keys())
 
@@ -118,7 +109,7 @@ def main(arg):
 			continue
 		if "sanity" in f or "oldlist" in f:
 			continue
-		fileID = f.split("/")[-1][0:8]
+		fileID = f.split("/")[-1]
 		print(fileID)
 		lines = []
 		try:
@@ -135,42 +126,50 @@ def main(arg):
 			
 			if out.asn and data["probe_asn"] != out.asn:
 				continue
-			if not "urlgetter_step" in data["annotations"]:
-				continue
+
+			if data["test_name"] == "quicping":
+				if data["input"] in unstable_hosts:
+					continue
+				mID = Measurement.mID(data, fileID, data["annotations"]["measurement_url"])
+				msrmnt = QuicpingMeasurement(data, id)
 			
-			try:
-				probed_ip = data["test_keys"]["queries"][0]["answers"][0]["ipv4"]
-			except:
-				# print(data["input"], data["annotations"]["urlgetter_step"])
-				continue
+			elif data["test_name"] == "urlgetter":
+				if not "urlgetter_step" in data["annotations"]:
+					continue
 			
-			step = data["annotations"]["urlgetter_step"]
-			if i+1 < len(lines):
-				next_data = json.loads(lines[i+1])
-				# if the measurement was repeated, ignore this one
-				if next_data["annotations"]["urlgetter_step"] == step:
+				step = data["annotations"]["urlgetter_step"]
+				if i+1 < len(lines):
+					next_data = json.loads(lines[i+1])
+					# if the measurement was repeated, ignore this one
+					if "urlgetter_step" in next_data["annotations"] and next_data["annotations"]["urlgetter_step"] == step:
+						print("repeated ignore")
+						continue
+
+				if not ("_inverse" in step):
+					url_ = data["input"]
+				if url_ in unstable_hosts:
+					print("unstable", url_ in test )
+					continue
+			
+
+				# mID = fileID + "-" + url_ + data["probe_asn"] + data["test_name"]
+				mID = Measurement.mID(data, fileID, url_)
+				msrmnt = URLGetterMeasurement(data, mID)
+
+				if msrmnt.unexpectedly_ran_resolve():
+					continue
+			
+				# disregard DNS failures
+				if msrmnt.failed_op == "resolve":
 					continue
 
-			if not ("_inverse" in step):
-				url_ = data["input"]
-			if url_ in unstable_hosts:
+			else:
 				continue
 			
-
-			# mID = fileID + "-" + url_ + data["probe_asn"] + data["test_name"]
-			mID = Measurement.mID(data, fileID, url_)
-			msrmnt = URLGetterMeasurement(data, mID)
-
-			if msrmnt.unexpectedly_ran_resolve():
-				continue
-			
-			# disregard DNS failures
-			if msrmnt.failed_op == "resolve":
-				continue
 			if msrmnt.step not in dicts:
 				continue
 			if mID in dicts[msrmnt.step]:
-				# print("already in dict", mID, data["measurement_start_time"], dicts[msrmnt.step][mID].data["measurement_start_time"], msrmnt.failure, dicts[msrmnt.step][mID].failure)
+				print("already in dict", mID, data["test_name"], data["measurement_start_time"], dicts[msrmnt.step][mID].data["measurement_start_time"], msrmnt.failure, dicts[msrmnt.step][mID].failure)
 				continue
 
 			dicts[msrmnt.step][mID] = msrmnt
