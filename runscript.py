@@ -62,10 +62,18 @@ def measure_sni(entry):
 
     # cloudflare QUIC rejects non-cloudflare SNIs. 
     # If we encounter such an error we retry with the cloudflare SNI.
-    if "ssl_failed_handshake" in out:
-        sni = sni_cloudflare
-        entry["sni"] = sni["sni_alt_name"]
-        out = run_urlgetter_command(entry)
+    try:
+        with open("report.jsonl", 'r') as dump:
+            lastline = dump.readlines()[-1]
+        data = json.loads(lastline)
+        input_url = data["input"]
+        failure = data["test_keys"]["failure"]
+        if "ssl_failed_handshake" in failure or "tls: handshake failure" in failure:
+            sni = sni_cloudflare
+            entry["sni"] = sni["sni_alt_name"]
+            out = run_urlgetter_command(entry)
+    except:
+        pass
 
     entry["step"] = entry["step"]+"_inverse"
     entry["sni"] = entry["domain"]
@@ -142,8 +150,9 @@ def make_quicping_command(entry):
 
 
 def main(urls, dnscache, longm):
-    sni_measure_input = []
-    quicping_measure_input = []
+    sni_measure_input_quic = {}
+    sni_measure_input_tcp = {}
+    quicping_measure_input = {}
     all_quic = {}
     all_tcp = {}
 
@@ -175,30 +184,46 @@ def main(urls, dnscache, longm):
         entry = measure("tcp_cached",u)
         all_tcp[u] = entry
     
-    with open("report.jsonl", 'r') as dump:
-        lines = dump.readlines()
-    
-    for i,l in enumerate(lines):
-        data = json.loads(l)
-        input_url = data["input"]
-        failure = data["test_keys"]["failure"]
-        if failure is not None:
-            sni_measure_input.append(all_quic[input_url])
-            sni_measure_input.append(all_tcp[input_url])
-            step = data["annotations"]["urlgetter_step"]
-            if "quic" in step:
-                quicping_measure_input.append(all_quic[input_url].copy())
+    try:
+        with open("report.jsonl", 'r') as dump:
+            lines = dump.readlines()
+
+        for i,l in enumerate(lines):
+            data = json.loads(l)
+            input_url = data["input"]
+            
+            failure = data["test_keys"]["failure"]
+            if failure is not None:
+                step = data["annotations"]["urlgetter_step"]
+                if "quic" in step:
+                    quicping_measure_input[input_url] = all_quic[input_url].copy()
+                    sni_measure_input_quic[input_url] = all_quic[input_url]
+                else:
+                    sni_measure_input_tcp[input_url] = all_tcp[input_url]
+    except:
+        pass
 
 
-    tt = len(sni_measure_input)
-    for c, entry in enumerate(sni_measure_input):
-        print("Last round: Retry failed websites with spoofed SNI "+ str(c+1)+"/"+str(tt))
+    tt = len(sni_measure_input_quic)
+    c = 1
+    for i, entry in sni_measure_input_quic.items():
+        print("Retry failed websites with spoofed SNI (HTTP/3) "+ str(c)+"/"+str(tt))
         measure_sni(entry)
+        c += 1
+    
+    tt = len(sni_measure_input_tcp)
+    c = 1
+    for i, entry in sni_measure_input_tcp.items():
+        print("Retry failed websites with spoofed SNI (HTTPS) "+ str(c)+"/"+str(tt))
+        measure_sni(entry)
+        c += 1
     
     tt = len(quicping_measure_input)
-    for c, entry in enumerate(quicping_measure_input):
-        print("Last round: Retry failed hosts with quicping "+ str(c+1)+"/"+str(tt))
+    c = 1
+    for i, entry in quicping_measure_input.items():
+        print("Last round: Retry failed hosts with quicping "+ str(c)+"/"+str(tt))
         measure_quicping(entry)
+        c += 1
         
             
 
