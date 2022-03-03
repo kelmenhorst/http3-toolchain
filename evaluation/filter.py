@@ -5,6 +5,7 @@ import json
 import glob
 import gzip
 from measurement import Measurement, URLGetterMeasurement, QuicpingMeasurement
+from eval import get_ipinfo
 
 
 STEPS = {}
@@ -61,13 +62,16 @@ class stepfilter:
             for s in self.steps:
                 if s == ms:
                     continue
-                omeasurement = STEPS[s][measurement.id]
-                of = omeasurement.error_type().lower()
-                if "failure" in self.steps[s] and omeasurement.failure is None:
-                    return False
-                if "success" in self.steps[s] and omeasurement.failure is not None:
-                    return False
-                if not (of in self.steps[s] or (omeasurement.failure is not None and "failure" in self.steps[s])):
+                try:
+                    omeasurement = STEPS[s][measurement.id]
+                    of = omeasurement.error_type().lower()
+                    if "failure" in self.steps[s] and omeasurement.failure is None:
+                        return False
+                    if "success" in self.steps[s] and omeasurement.failure is not None:
+                        return False
+                    if not (of in self.steps[s] or (omeasurement.failure is not None and "failure" in self.steps[s])):
+                        return False
+                except KeyError as e:
                     return False
                 # if not (STEPS[s][measurement.id].error_type() in self.steps[s] or (STEPS[s][measurement.id].failure is not None and "failure" in self.steps[s])):
                 #     return False
@@ -84,7 +88,37 @@ class urlfilter:
             return True
         if measurement.input_url == "https://www.cloudflare.com" or measurement.input_url == "https://quic.nginx.org/":
             return False
-        return measurement.input_url in self.urls
+        for u in self.urls:
+            if measurement.input_url in u or u in measurement.input_url:
+                return True
+        return False
+
+class protofilter:
+    def __init__(self, p):
+        self.proto = None
+        if p is not None:
+            self.proto = p
+    
+    def filter(self, measurement):
+        if self.proto is None:
+            return True
+        if self.proto == measurement.proto: 
+            return True
+        return False
+
+class asnfilter:
+    def __init__(self, a):
+        self.asn = None
+        if a is not None:
+            self.asn = a
+    
+    def filter(self, measurement):
+        if self.asn is None:
+            return True
+        if self.asn == measurement.probe_asn: 
+            return True
+        # print(measurement.probe_asn)
+        return False
 
 class ipfilter:
     def __init__(self, f):
@@ -115,11 +149,26 @@ def pass_filters(filters, measurement):
     return True
 
 def main(out):
+    unstable_hosts = {}
+    if out.sanitycheck:
+        lines = []
+        with open(out.sanitycheck, "r") as scheck:
+            lines = scheck.readlines()
+        for l in lines:
+            data = json.loads(l)
+            if data["test_name"] == "quicping":
+                continue
+            if data["test_keys"]["failure"] is not None and not ("cloudflare" in data["input"] or "quic.nginx.org" in data["input"] or "plus.im" in data["input"]):
+                unstable_hosts[data["input"]] = True
+    print("Unstable hosts:", unstable_hosts.keys())
+
     step_filter = stepfilter(out.steps)
     url_filter = urlfilter(out.inputurl)
     ip_filter = ipfilter(out.ip)
+    proto_filter = protofilter(out.proto)
+    asn_filter = asnfilter(out.asn)
     server_filter = serverfilter(out.server)  
-    filters = [step_filter, url_filter, ip_filter, server_filter]
+    filters = [step_filter, url_filter, ip_filter, server_filter, proto_filter, asn_filter]
     
     files = [out.file]
     if os.path.isdir(out.file):
@@ -149,28 +198,26 @@ def main(out):
             data = json.loads(l)
             if i+1 < len(lines):
                 next_data = json.loads(lines[i+1])
-                # if the measurement was repeated, ignore this one
-                if "urlgetter_step" in next_data["annotations"] and next_data["annotations"]["urlgetter_step"] == data["annotations"]["urlgetter_step"]:
-                    continue
 
             measurement = None
             id = Measurement.mID(data, fileID, data["input"])
-            if out.experiment.lower() != data["test_name"]:
-                continue
-            if out.experiment.lower() == "urlgetter":
+            if data["test_name"] == "urlgetter":
                 measurement = URLGetterMeasurement(data, id)
-            elif out.experiment.lower() == "quicping":
+            elif data["test_name"] == "quicping":
+                id = Measurement.mID(data, fileID,data["annotations"]["measurement_url"])
                 measurement = QuicpingMeasurement(data, id)
             else:
                 measurement = Measurement(data, id)
 
+            if measurement.input_url in unstable_hosts:
+                continue
             if measurement.step not in STEPS:
                 STEPS[measurement.step] = {}
             STEPS[measurement.step][id] = measurement
 
        
     for k,step in STEPS.items():
-        for id, measurement in step.items():      
+        for id, measurement in step.items():    
             if not pass_filters(filters, measurement):
                 continue
 
@@ -178,6 +225,9 @@ def main(out):
                 continue
 
             if out.success and measurement.failure is not None:
+                continue
+        
+            if out.runtime and measurement.runtime < float(out.runtime):
                 continue
 
             if out.failuretype is not None:
@@ -209,6 +259,8 @@ if __name__ == "__main__":
     argparser.add_argument("-F", "--file", help="use specific input file", required=True)
     argparser.add_argument("-s", "--steps", help="name(s) of (two) urlgetter step(s) to investigate, add failure filter with '#', e.g. -s quic_cached#success")
     argparser.add_argument("-u", "--inputurl", help="filter input url")
+    argparser.add_argument("-p", "--proto", help="filter protocol")
+    argparser.add_argument("-a", "--asn", help="filter asn")
     argparser.add_argument("-ip", "--ip", help="filter input IPv4")
     argparser.add_argument("-t", "--failuretype", help="failure type")
     argparser.add_argument("-f", "--failure", help="failure", action='store_true')
@@ -216,6 +268,7 @@ if __name__ == "__main__":
     argparser.add_argument("-d", "--dict", help="cummulate to dictionary", action='store_true')
     argparser.add_argument("-l", "--list", help="cummulate to list", action='store_true')
     argparser.add_argument("-m", "--server", help="the response server, e.g. Litespeed")
-    argparser.add_argument("-e", "--experiment", help="the ooni experiment name", required=True)
+    argparser.add_argument("-c", "--sanitycheck", help="report file with sanity check measurement")
+    argparser.add_argument("-T", "--runtime", help="limit the runtime")
     out = argparser.parse_args()
     main(out)
