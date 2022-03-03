@@ -10,19 +10,27 @@ class Measurement:
 		self.data = data
 		self.id = id
 		self.tk = data["test_keys"]
-		self.input_url = data["input"]
-		self.input_domain = urlparse(self.input_url).netloc
 		self.probe_asn = data["probe_asn"]
 		self.probe_country = data["probe_cc"]
 		self.test_name = data["test_name"]
+		self.time = data["measurement_start_time"]
+		self.runtime = data["test_runtime"]
 
 class QuicpingMeasurement(Measurement):
 	def __init__(self, data, id):
 		Measurement.__init__(self, data, id) 
+		self.input_url = data["annotations"]["measurement_url"]
+		self.input_domain = urlparse(self.input_url).netloc
 		self.domain = self.tk["domain"]
 		self.pings = self.tk["pings"]
 		self.step = "quicping"
 		self.failure = None
+		self.proto = "quic"
+		try:
+			self.runtime = self.pings[0]["responses"][0]["t"] - 1
+		except:
+			self.runtime = ""
+			pass
 		pingresults = [p["failure"] for p in self.pings]
 		if None in pingresults:
 			self.failure = None
@@ -32,6 +40,9 @@ class QuicpingMeasurement(Measurement):
 		if self.failure is not None:
 			self.failed_op = "ping"
 		self.probe_ip = data["input"]
+	
+	def get_server(self):
+		return None
 
 
 	def error_type(self):
@@ -40,13 +51,7 @@ class QuicpingMeasurement(Measurement):
 		if "connect: no route to host" in self.failure:
 			return "route-err"
 		elif self.failure == "generic_timeout_error":
-			return "to"
-		elif "No recent network activity" in self.failure:
-				return "conn-to"
-		elif "eof" in self.failure:
-			return "EOF-err"
-		elif "PROTOCOL_ERROR" in self.failure:
-			return "proto-err"
+			return "ping-to"
 		elif "unknown_failure" in self.failure:
 			if "tls:" in self.failure:
 				return "TLS-err"
@@ -57,15 +62,18 @@ class QuicpingMeasurement(Measurement):
 class URLGetterMeasurement(Measurement): 
 	def __init__(self, data, id):
 		Measurement.__init__(self, data, id) 
+		self.input_url = data["input"]
+		self.input_domain = urlparse(self.input_url).netloc
 		self.failure = self.tk["failure"]
 		self.ops = self.get_successful_operations()
 		self.failed_op = self.get_failed_operation()
-		self.proto = self.tk["requests"][0]["request"]["x_transport"]
 		self.step = data["annotations"]["urlgetter_step"]
 		try:
 			self.probe_ip = self.tk["queries"][0]["answers"][0]["ipv4"]
+			self.proto = self.tk["requests"][0]["request"]["x_transport"]
 		except:
 			self.probe_ip = ""
+			self.proto = ""
 			pass
 		try:
 			self.sni = self.tk["tls_handshakes"][0]["server_name"]
@@ -116,6 +124,8 @@ class URLGetterMeasurement(Measurement):
 		if self.tk["failed_operation"] is None:
 			return None
 		events = self.tk["network_events"]
+		if events is None:
+			return None
 		successful_operations = []
 		for e in events:
 			if e["failure"] is not None:
