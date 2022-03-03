@@ -11,6 +11,7 @@ import numpy as np
 from consistency import consistency
 from measurement import Measurement, URLGetterMeasurement, QuicpingMeasurement
 from sankey import sankey
+from timing import time_of_day
 
 import ipinfo
 access_token = 'c896c6da34ef96'
@@ -39,8 +40,7 @@ def conditional_eval(data_t, data_q, evaluation):
 				try:
 					print("---", data_q[id].error_type(), data_t[id].failed_op, data_q[id].failed_op)
 					qn = q_errors.get(data_q[id].error_type(),[])
-					ipinfo = get_ipinfo(data_q[id].probe_ip)
-					qn.append(data_q[id].input_url+" "+data_q[id].probe_ip + " "+ ipinfo.country + " " + ipinfo.org + str(data_q[id].tk["requests"][-1]["response"]["code"]))
+					qn.append(data_q[id].input_url+" "+data_q[id].probe_ip)
 					q_errors[data_q[id].error_type()] = qn
 					
 				except KeyError as e:
@@ -82,6 +82,8 @@ def main(arg):
 			lines = scheck.readlines()
 		for l in lines:
 			data = json.loads(l)
+			if data["test_name"] == "quicping":
+				continue
 			if data["test_keys"]["failure"] is not None and not ("cloudflare" in data["input"] or "quic.nginx.org" in data["input"] or "plus.im" in data["input"]):
 				unstable_hosts[data["input"]] = True
 	print("Unstable hosts:", unstable_hosts.keys())
@@ -138,17 +140,10 @@ def main(arg):
 					continue
 			
 				step = data["annotations"]["urlgetter_step"]
-				if i+1 < len(lines):
-					next_data = json.loads(lines[i+1])
-					# if the measurement was repeated, ignore this one
-					if "urlgetter_step" in next_data["annotations"] and next_data["annotations"]["urlgetter_step"] == step:
-						print("repeated ignore")
-						continue
 
 				if not ("_inverse" in step):
 					url_ = data["input"]
 				if url_ in unstable_hosts:
-					print("unstable", url_ in test )
 					continue
 			
 
@@ -167,6 +162,9 @@ def main(arg):
 				continue
 			
 			if msrmnt.step not in dicts:
+				continue
+			if "_sni" in msrmnt.step and msrmnt.failure is not None and ("ssl_failed_handshake" in msrmnt.failure or "tls: handshake failure" in msrmnt.failure):
+				print("sni failure")
 				continue
 			if mID in dicts[msrmnt.step]:
 				print("already in dict", mID, data["test_name"], data["measurement_start_time"], dicts[msrmnt.step][mID].data["measurement_start_time"], msrmnt.failure, dicts[msrmnt.step][mID].failure)
@@ -213,9 +211,12 @@ def main(arg):
 			q_errors = {}
 			print("--",f, failures.count(f))
 
-	if len(steps) == 1:
-		sys.exit()
 	
+	# consistency(dicts, steps, outpath)
+	# sys.exit()
+
+	# time_of_day(dict_1)
+
 	dict_1, dict_2 = dicts.values()
 	if out.onlyerrors:
 		dict_1, dict_2 = only_err(dict_1, dict_2)
@@ -223,7 +224,6 @@ def main(arg):
 	evaluation = conditional_eval(dict_1, dict_2, evaluation)
 	evaluation = sankey(steps, dict_1, dict_2, outpath, evaluation)
 
-	# consistency(dict_1, dict_2, [steps[0].replace("_cached", ""),steps[1].replace("_cached", "")], outpath)
 
 	with open(outpath +"_evaluation.json", "w") as e:
 		json.dump(evaluation, e, indent=4, sort_keys=True, default=str)
