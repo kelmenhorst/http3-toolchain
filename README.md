@@ -44,6 +44,8 @@
 ### 1. Download latest probe-cli release
 - https://github.com/ooni/probe-cli/releases
 - ```probe-cli/internal$ go build ./cmd/miniooni```
+- Initialize ```miniooni``` by consenting to the risks of running OONI, e.g. with this command: <br/>
+```./miniooni --yes -i https://ooni.org urlgetter```
 
 ### 2. Runner script
 - ```runscript.py [-h] -u URLS -p MINIOONI_PATH```, where URLS is the generated input file and MINIOONI_PATH leads to the location of the miniooni executable (```internal/miniooni```)
@@ -56,24 +58,47 @@
 <br>
 
 ## [Examine and visualize the results](evaluation)
+**Sanity checks** <br/>
+For both evaluation scripts, you can add a postprocessing sanity check. The base of the sanity check is a json(l) file which contains a measurement taken in a trusted (i.e. uncensored) network using the same input as the analyzed meausurement(s). The idea is that, if servers have malfunctions or their QUIC support is unstable, it shows up as a failure in an uncensored network and should be filtered out from the measurements. Momentary malfunctions are not filtered out with this mechanism.
 
 ### Filter measurements
-**Print URL, step and failure type of filtered measurements**
-- ```filter.py [-h] -F FILE [-s STEPS] [-u INPUTURL] [-ip IP] [-t FAILURETYPE] [-f] [-c] ```
+**Print URL, step and failure type of filtered measurements**<b/>
+Measurements can be searched and filtered with a variety of filters:
+- experiment step: urlgetter_step as specified in ```["annotations"]["urlgetter_step"]``` for urlgetter measurements, or "quicping" for quicping measurements
+- URL
+- IP address
+- transport protocol
+- ASN
+- failure types
+- server type 
+Check out usage below for examples.
+
+**Usage***
+- ```filter.py [-h] -F FILE [-s STEPS] [-u INPUTURL] [-ip IP] [-p PROTO] [-a ASN] [-t FAILURETYPE] [-m SERVER] [-f] [-S] [-d] [-l] [-c SANITYCHECK][-T RUNTIME]```
+- use ```-F``` parameter to define the file(s) to be evaluated; this can be a file or a folder
 - use filter ```-s``` to only examine certain measurement steps, e.g. "tcp_cached"
 - use filter ```-u``` to investigate measurements of a specific URL
 - use filter ```-ip``` to investigate measurements of a specific IP address
-- use filter ```-t``` to only examine certain failure types, e.g. "TLS-hs-to"
-- use filter ```-f``` to only examine failed measurements
-- use ```-c``` to print cummulative result at the end
+- use filter ```-p``` to investigate measurements of a specific protocol, e.g. "quic", "tcp"
+- use filter ```-a``` to investigate measurements of a specific ASN, e.g. "AS6805"
+- use filter ```-t``` to investigate measurements with specific failure types, e.g. "TLS-hs-to TCP-hs-to"
+- use filter ```-m``` to investigate measurements of a specific server type, e.g. "nginx", "cloudflare"
+- use the flag ```-f``` to only examine failed measurements
+- use the flag ```-S``` to only examine successful measurements
+- use ```-d``` to print cummulative result as a dictionary at the end
+- use ```-l``` to print cummulative result as a list at the end
+- use ```-c``` to specify a file for a sanity check (see above, Sanity check)
 
 
 ### Visualize data correlation
 ***Generate a sankey diagram that depicts the correlation between different urlgetter measurement steps**
-- ```eval.py [-h] -F FILE -s STEPS [-o OUTPATH]```
+- ```eval.py [-h] -F FILE -s STEPS [-o OUTPATH] [-e] [-a ASN] [-c SANITYCHECK]```
 - the file(s) to be evaluated are defined by the ```-F``` parameter; this can be a file or a folder
 - use ```-s``` to define the 2 steps that are compared, e.g. "tcp_cached quic_cached"
 - to define the output directory use the ```-o``` option
+- use the flag ```-e``` to only investigate measurements that failed in the first of the two steps 
+- use ```-a``` to define the target ASN
+- use ```-c``` to specify a file for a sanity check (see above, Sanity check)
 
 
   
