@@ -215,8 +215,6 @@ def main(arg):
 	# consistency(dicts, steps, outpath)
 	# sys.exit()
 
-	# time_of_day(dict_1)
-
 	dict_1, dict_2 = dicts.values()
 	if out.onlyerrors:
 		dict_1, dict_2 = only_err(dict_1, dict_2)
