@@ -67,7 +67,8 @@ def main(argv):
     Path(targetdir).mkdir(parents=True, exist_ok=True)
     local_filepath = os.path.join(args.listdir, "lists", cc+".csv")
     global_filepath = os.path.join(args.listdir, "lists", "global.csv")
-    filter_categories.run(http3_file, local_filepath, global_filepath, targetdir)
+    categories = ["XED", "GAYL", "PORN", "PROV", "DATE", "MINF", "HUMR" "REL", "LGBT"]
+    filter_categories.run(http3_file, local_filepath, global_filepath, targetdir, categories)
     http3_file = os.path.join(targetdir, os.path.basename(http3_file)+".filtered.txt")
 
     print("Step 4: Done.")

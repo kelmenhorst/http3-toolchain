@@ -26,7 +26,7 @@ safe_global = [
 
 
 
-def run(input_urls_filepath, local_filepath, global_filepath, target_dir):
+def run(input_urls_filepath, local_filepath, global_filepath, target_dir, categories):
 	if global_filepath:
 		df_global = pandas.read_csv(global_filepath, header=None, usecols=[0, 1])
 	df_cc = pandas.read_csv(local_filepath, header=None, usecols=[0, 1])
@@ -61,7 +61,7 @@ def run(input_urls_filepath, local_filepath, global_filepath, target_dir):
 			for ix in range(len(index)):
 				category = (df[1][index[int(ix)]]).upper()
 				# remove websites from these categories
-				for c in ["XED", "GAYL", "PORN", "PROV", "DATE", "MINF", "HUMR" "REL", "LGBT"]:
+				for c in categories:
 					if category.upper() in c or c in category.upper():
 						print("removed", category, url, ok[-1])
 						ok = ok[:-1]
@@ -81,15 +81,18 @@ def run(input_urls_filepath, local_filepath, global_filepath, target_dir):
 
 def main(argv):
 	# Create the parser.
-	argparser = argparse.ArgumentParser(description='Filter out risky content categories: "XED", "GAYL", "PORN", "PROV", "DATE", "MINF", "HUMR", "REL", "LGBT".')
+	argparser = argparse.ArgumentParser(description='Filter out certain risky content categories, e.g. "XED", "GAYL", "PORN", "PROV", "DATE", "MINF", "HUMR", "REL", "LGBT".')
 
 	# Add the arguments.
 	argparser.add_argument("-i", "--inputurls", help="input url file, structured", required=True)
 	argparser.add_argument("-l", "--localpath", help="path to citizenlab local cc.csv file", required=True)
 	argparser.add_argument("-t", "--targetdir", help="path to store the results in", required=True)
 	argparser.add_argument("-g", "--globalpath", help="path to citizenlab global.csv file")
+	argparser.add_argument("-c", "--categories", help="the category codes to filter out, separated by whitespaces", required=True)
 	out = argparser.parse_args()
-	run(out.inputurls, out.localpath, out.globalpath, out.targetdir)
+
+	categories = out.categories.split(" ")
+	run(out.inputurls, out.localpath, out.globalpath, out.targetdir, categories)
 
 if __name__ == "__main__":
    main(sys.argv[1:])

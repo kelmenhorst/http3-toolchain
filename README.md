@@ -26,8 +26,9 @@
 - result: ```targetdir/<COUNTRYCODE1]_http3_<COUNTRYCODE2>_http3.txt```
 
 ### 4. Filter risky categories
-**Filter out domains from the following categories: "XED", "GAYL", "PORN", "PROV", "DATE", "MINF", "REL", "LGBT"**
-- run: ```filter_categories.py [-h] -i INPUTURLS -l LOCALPATH -t TARGETDIR [-g GLOBALPATH]```
+**Filter out domains from certain content categories.**
+- as ```-c``` parameter I use: "XED GAYL PORN PROV DATE MINF REL LGBT"
+- run: ```filter_categories.py [-h] -i INPUTURLS -l LOCALPATH -t TARGETDIR [-g GLOBALPATH] -c CATEGORIES```
 - result: ```targetdir/<COUNTRYCODE>_http3.txt.filtered.txt```
 
 ### 5. Resolve IP addresses
