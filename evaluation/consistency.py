@@ -1,13 +1,24 @@
 from visualize import plt
 import numpy as np
+import sys
+import socket
 
-def consistency(_data_1, _data_2, stepnames, outpath, only_err=False):
-	# s = ['https://doordash.com', 'https://thehindu.com', 'https://tandfonline.com', 'https://mdpi.com', 'https://pars.host/']
-	data_1 = {k:v for (k,v) in _data_1.items()}
-	data_2 = {k:v for (k,v) in _data_2.items()}
+import ipinfo
+access_token = 'c896c6da34ef96'
+handler = ipinfo.getHandler(access_token)
+
+timestamp_fmt = '%Y-%m-%d %H:%M:%S'
+
+def get_ipinfo(ip):
+	return handler.getDetails(ip)
+
+
+def consistency(dicts, stepnames, outpath, only_err=False):
+	for i, n in enumerate(stepnames):
+		stepnames[i] = n.replace("_cached", "")
 
 	plotdata = []
-	for i,data in enumerate([data_1, data_2]):
+	for i,data in enumerate(dicts.values()):
 		host_map = {}
 		for k, q in data.items():
 			host = q.input_url.replace("https://", "")
@@ -37,30 +48,25 @@ def consistency(_data_1, _data_2, stepnames, outpath, only_err=False):
 		print(len(cons))
 		plotdata.append(cons)
 		print("O",cons)
-	
 
-	hx, hy, _ = plt.hist(plotdata[0],bins=20,histtype='step',cumulative=True, density=True)
-	hx_t, hy_t, _ = plt.hist(plotdata[1],bins=20,histtype='step',cumulative=True, density=True)
-	plt.close()
-	print(hx, hy)
-	print(hx_t, hy_t)
+	for o in out:
+		print(o)
+
 	fig = plt.figure()
-	fig.set_size_inches((2, 1.7))
-	pdf = hx / sum(hx)
-	cdf = np.cumsum(pdf)*100
-	plt.plot(hy[1:], cdf, label="CDF", color="powderblue")
-	pdf = hx_t / sum(hx_t)
-	cdf = np.cumsum(pdf)*100
-	plt.plot(hy_t[1:], cdf, label="CDF", color="lightcoral")
+	for pl in plotdata:
+		hx, hy = np.histogram(pl,bins=20, density=True)
+		hx = np.cumsum(hx)
+		print(hx, hy)
+		pdf = hx / sum(hx)
+		cdf = np.cumsum(pdf)*100
+		plt.plot(hy[1:], cdf, label="CDF")
 	plt.ylabel("% of hosts")
 	plt.yticks([20,40,60,80])
 	plt.xticks([70,80,90,100])
-	plt.legend([stepnames[0], stepnames[1]])
+	plt.legend(stepnames)
 	plt.xlabel("Result consistency [%]")
 	plt.ylim(0,100)
 	plt.tight_layout()
-	# plt.title("Empirical CDF")
 
 	
 	plt.savefig(outpath+"_consistency.pdf")
-	# plt.show()
