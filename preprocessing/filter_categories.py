@@ -26,13 +26,14 @@ safe_global = [
 
 
 
-def run(input_urls_filepath, local_filepath, global_filepath, target_dir, categories):
-	if global_filepath:
-		df_global = pandas.read_csv(global_filepath, header=None, usecols=[0, 1])
-	df_cc = pandas.read_csv(local_filepath, header=None, usecols=[0, 1])
-	df = df_cc
-	if global_filepath:
-		df = pandas.concat([df_cc, df_global], ignore_index=True)
+def run(input_urls_filepath, cc, use_globallist, target_dir, categories):
+	cc_url = "https://raw.githubusercontent.com/citizenlab/test-lists/master/lists/"+cc+".csv"
+	df = pandas.read_csv(cc_url, header=None, usecols=[0, 1])
+
+	if use_globallist:
+		global_url = "https://raw.githubusercontent.com/citizenlab/test-lists/master/lists/global.csv"
+		df_global = pandas.read_csv(global_url, header=None, usecols=[0, 1])
+		df = pandas.concat([df, df_global], ignore_index=True)
 
 	not_found = []
 	ok = []
@@ -85,14 +86,16 @@ def main(argv):
 
 	# Add the arguments.
 	argparser.add_argument("-i", "--inputurls", help="input url file, structured", required=True)
-	argparser.add_argument("-l", "--localpath", help="path to citizenlab local cc.csv file", required=True)
+	argparser.add_argument("-cc", "--countrycode", help="country code", required=True)
 	argparser.add_argument("-t", "--targetdir", help="path to store the results in", required=True)
-	argparser.add_argument("-g", "--globalpath", help="path to citizenlab global.csv file")
 	argparser.add_argument("-c", "--categories", help="the category codes to filter out, separated by whitespaces", required=True)
+	argparser.add_argument("-g", "--globallist", help="consider global test list", action='store_true')
 	out = argparser.parse_args()
-
+	
+	cc = out.countrycode.lower()
 	categories = out.categories.split(" ")
-	run(out.inputurls, out.localpath, out.globalpath, out.targetdir, categories)
+	
+	run(out.inputurls, cc, out.globallist, out.targetdir, categories)
 
 if __name__ == "__main__":
    main(sys.argv[1:])

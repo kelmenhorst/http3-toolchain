@@ -3,15 +3,13 @@
 ## [Input generation](preprocessing)
 
 ### 0. Run all steps.
-- ```input_generator.py [-h] -l LISTDIR -cc COUNTRYCODE -t TARGETDIR [-g] [-c COLUMN] [-v]```
+- ```input_generator.py [-h] -cc COUNTRYCODE -t TARGETDIR [-g] [-v]```
 - use ```-g``` to use both local country list as well as global list (which must be generated first)
 - result: ```targetdir/<COUNTRYCODE>[_global]_http3_filtered_cacheddns.txt``` with lines like this: ```url-----ip```
 
 ### 1. Extract urls
-**Extract urls from csv source. [citizenlab test-lists](https://github.com/citizenlab/test-lists)**
-- clone source repo
-- optional: use prune-dead-urls.py script
-- run: ```generate_txt_input.py [-h] -cc COUNTRYCODE -t TARGETDIR [-c COLUMN] [-r ROOTDIR]```
+**Extracts url strings from csv tables in [citizenlab test-lists](https://github.com/citizenlab/test-lists)**
+- run: ```generate_txt_input.py [-h] -cc COUNTRYCODE -t TARGETDIR```
 - result: ```targetdir/<COUNTRYCODE>.txt```
 
 ### 2. Check HTTP/3 compatibility
@@ -28,7 +26,7 @@
 ### 4. Filter risky categories
 **Filter out domains from certain content categories.**
 - as ```-c``` parameter I use: "XED GAYL PORN PROV DATE MINF REL LGBT"
-- run: ```filter_categories.py [-h] -i INPUTURLS -l LOCALPATH -t TARGETDIR [-g GLOBALPATH] -c CATEGORIES```
+- run: ```filter_categories.py [-h] -i INPUTURL_FILE_PATH -cc COUNTRYCODE -t TARGETDIR -c CATEGORIES [-g]```
 - result: ```targetdir/<COUNTRYCODE>_http3.txt.filtered.txt```
 
 ### 5. Resolve IP addresses

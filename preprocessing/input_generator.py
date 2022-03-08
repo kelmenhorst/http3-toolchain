@@ -17,21 +17,19 @@ def main(argv):
     # Create the parser.
     argparser = argparse.ArgumentParser(description='Handles 5 preprocessing steps. (check out README)')
     # Add the arguments.
-    argparser.add_argument("-l", "--listdir", help="path to test-lists/ directory", required=True)
     argparser.add_argument("-cc", "--countrycode", help="country code", required=True)
     argparser.add_argument("-t", "--targetdir", help="target directory to store generated input files", required=True)
     argparser.add_argument("-g", "--globallist", help="consider global test list", action='store_true')
-    argparser.add_argument("-c", "--column", help="column with urls in the csv file, default 0")
     argparser.add_argument("-v", "--verbose", help="verbose output", action='store_true')
     args = argparser.parse_args()
     cc = args.countrycode.lower()
 
-    print("Step 1: Extracts url strings from csv tables...")
+    print("Step 1: Extracts url strings from csv tables in github.com/citizenlab/test-lists...")
 
     # generate_txt_input.py
     targetdir = os.path.join(args.targetdir, "raw")
     Path(targetdir).mkdir(parents=True, exist_ok=True)
-    generate_txt_input.run(cc, targetdir, args.listdir, args.column)
+    generate_txt_input.run(cc, targetdir)
     urls_file = os.path.join(targetdir, cc+".txt")
     # ./raw/cc.txt
 
@@ -65,10 +63,8 @@ def main(argv):
     # filter_categories.py (optional input file?)
     targetdir = os.path.join(args.targetdir,"filtered")
     Path(targetdir).mkdir(parents=True, exist_ok=True)
-    local_filepath = os.path.join(args.listdir, "lists", cc+".csv")
-    global_filepath = os.path.join(args.listdir, "lists", "global.csv")
     categories = ["XED", "GAYL", "PORN", "PROV", "DATE", "MINF", "HUMR" "REL", "LGBT"]
-    filter_categories.run(http3_file, local_filepath, global_filepath, targetdir, categories)
+    filter_categories.run(http3_file, cc, args.globallist, targetdir, categories)
     http3_file = os.path.join(targetdir, os.path.basename(http3_file)+".filtered.txt")
 
     print("Step 4: Done.")
