@@ -19,6 +19,36 @@ handler = ipinfo.getHandler(access_token)
 
 timestamp_fmt = '%Y-%m-%d %H:%M:%S'
 
+class MeasurementCollector:
+	def __init__(self, c, keys):
+		self.classifier = c
+		self.collection = {}
+		for k in keys:
+			self.collection[k] = {}
+
+	def add_by_ID(self, measurement):
+		key = getattr(measurement, self.classifier)
+		self.collection[key][measurement.id] = measurement
+
+	def has_key(self, measurement):
+		key = getattr(measurement, self.classifier)
+		return key in self.collection
+
+	def has_id(self, id, measurement):
+		key = getattr(measurement, self.classifier)
+		return id in self.collection[key]
+	
+	def class_items(self):
+		return self.collection.items()
+
+	def classes(self):
+		return self.collection.values()
+	
+	def classifiers(self):
+		return self.collection.keys()
+
+
+
 def get_ipinfo(ip):
 	return handler.getDetails(ip)
 
@@ -63,15 +93,11 @@ def main(arg):
 	# Add the arguments
 	argparser.add_argument("-F", "--file", help="use specific input file", required=True)
 	argparser.add_argument("-s", "--steps", help="name(s) of (two) urlgetter step(s) to investigate", required=True)
-	argparser.add_argument("-o", "--outpath", help="path to store the output plot file")
 	argparser.add_argument("-e", "--onlyerrors", help="only consider failure cases", action="store_true")
 	argparser.add_argument("-a", "--asn", help="asn")
+	argparser.add_argument("-cl", "--classifier", help="the classifier to separate classes of measurements, e.g. step or probe_asn", required=True)
 	argparser.add_argument("-c", "--sanitycheck", help="report file with sanity check measurement")
 	out = argparser.parse_args()
-
-	outpath = out.outpath
-	if outpath is None:
-		outpath = "."
 
 	steps = out.steps.split(" ")
 
@@ -90,21 +116,36 @@ def main(arg):
 
 	evaluation = {}
 
+	asns = []
+	if out.asn is not None:
+		asns = out.asn.split(",")
 		
 	files = [out.file]
 	if os.path.isdir(out.file):
 		files = glob.glob(out.file+"/*.json*")
+		outpath = out.file
+	else:
+		outpath = os.path.dirname(out.file)
+
+	filename = "result"
+	for a in asns:
+		filename += "_" + a
+		break
+	for s in steps:
+		filename += "_" + s
+	if out.sanitycheck:
+		filename += "_checked"
+		
+	outpath = os.path.join(outpath, filename)
+
+
 	print("Processing files...", files, "\n")
 
 	possible_asns = {}
-
-
 	inputs = {}
-	dicts = {}
+	collector = MeasurementCollector(out.classifier, steps)
 	min_time_stamp = None
 	max_time_stamp = None
-	for step in steps:
-		dicts[step] = {}
 
 	for f in files:
 		if "_evaluation.json" in f:
@@ -125,9 +166,7 @@ def main(arg):
 			data = json.loads(l)
 			
 			possible_asns[data["probe_asn"]] = True
-			
-			if out.asn and data["probe_asn"] != out.asn:
-				continue
+		
 
 			if data["test_name"] == "quicping":
 				if data["input"] in unstable_hosts:
@@ -160,17 +199,19 @@ def main(arg):
 
 			else:
 				continue
-			
-			if msrmnt.step not in dicts:
+			if msrmnt.step not in steps:
+				continue
+			if len(asns) > 0 and msrmnt.probe_asn not in asns:
 				continue
 			if "_sni" in msrmnt.step and msrmnt.failure is not None and ("ssl_failed_handshake" in msrmnt.failure or "tls: handshake failure" in msrmnt.failure):
 				print("sni failure")
 				continue
-			if mID in dicts[msrmnt.step]:
-				print("already in dict", mID, data["test_name"], data["measurement_start_time"], dicts[msrmnt.step][mID].data["measurement_start_time"], msrmnt.failure, dicts[msrmnt.step][mID].failure)
+
+			if collector.has_id(mID, msrmnt):
+				print("already in collector", mID, data["test_name"], data["measurement_start_time"])
 				continue
 
-			dicts[msrmnt.step][mID] = msrmnt
+			collector.add_by_ID(msrmnt)
 
 			tstamp = datetime.strptime(data["measurement_start_time"], timestamp_fmt)
 			if max_time_stamp is None or tstamp > max_time_stamp:
@@ -183,10 +224,6 @@ def main(arg):
 				else:
 					inputs[url_].append(data["measurement_start_time"])
 
-	outpath = os.path.join(outpath, out.asn + "_" + steps[0] + "_" + steps[1])
-	if out.sanitycheck:
-		outpath += "_checked"
-
 
 	evaluation["test_list"] = inputs
 	evaluation["test_list_length"] = len(inputs.keys())
@@ -195,7 +232,7 @@ def main(arg):
 
 	
 
-	for v,d in dicts.items():
+	for v,d in collector.class_items():
 		frate = {k:v for (k,v) in d.items() if v.failure is not None}
 		print("failures in step", v+":", len(frate), "/", len(d))
 		failures = [v.error_type() for v in frate.values()]
@@ -212,10 +249,11 @@ def main(arg):
 			print("--",f, failures.count(f))
 
 	
-	# consistency(dicts, steps, outpath)
+	# consistency(collector, steps, outpath)
 	# sys.exit()
 
-	dict_1, dict_2 = dicts.values()
+
+	dict_1, dict_2 = collector.classes()
 	if out.onlyerrors:
 		dict_1, dict_2 = only_err(dict_1, dict_2)
 
