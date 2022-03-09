@@ -1,14 +1,18 @@
 import holoviews as hv
 from holoviews import opts, dim
 hv.extension('bokeh')
+from bokeh.plotting import show
 import pandas as pd
 from visualize import CMAP
 from error import IGNORE_ERR
 
 IGNORE_SMALLER_VALUES = 0
 
-def sankey(steps, data_1, data_2, outpath, evaluation):
-	print("\n\n\nCorrelation Matrix (Sankey)\n")
+def sankey(collector, outpath, evaluation, savepdf):
+	steps = collector.classifiers()
+	data_1, data_2 = collector.classes()
+
+	print("\n\n\nCorrelation Matrix (Sankey)\n", steps)
 	global cc
 	global save_plot
 	
@@ -28,6 +32,9 @@ def sankey(steps, data_1, data_2, outpath, evaluation):
 		failures_2.insert(0,e_q)
 		
 	n = len(failures_1)
+	if n == 0 or len(failures_2) == 0:
+		print("sankey diagram cannot be generated, no valid data")
+		return evaluation
 
 	# create a df from the data
 	df_links = pd.DataFrame([failures_1, failures_2], steps).T
@@ -70,7 +77,10 @@ def sankey(steps, data_1, data_2, outpath, evaluation):
 
 	hv.extension('matplotlib')
 	sankey.opts(opts.Sankey(cmap=CMAP,labels='index', edge_color=dim(steps[0]).str(),node_color=dim('index').str(), label_text_font_size="xx-large", label_position="outer", node_width=50, show_values=True, fig_size=160))
-	# hv.output(sankey, fig='pdf', backend='matplotlib')
-	hv.Store.renderers['matplotlib'].save(sankey, outpath, 'pdf')
+	if savepdf:
+		hv.Store.renderers['matplotlib'].save(sankey, outpath, 'pdf')
+	else:
+		show(hv.render(sankey, "bokeh", dpi = 500))
+
 	
 	return evaluation

@@ -60,7 +60,7 @@
 For both evaluation scripts, you can add a postprocessing sanity check. The base of the sanity check is a json(l) file which contains a measurement taken in a trusted (i.e. uncensored) network using the same input as the analyzed meausurement(s). The idea is that, if servers have malfunctions or their QUIC support is unstable, it shows up as a failure in an uncensored network and should be filtered out from the measurements. Momentary malfunctions are not filtered out with this mechanism.
 
 ### Filter measurements
-**Print URL, step and failure type of filtered measurements**<b/>
+**Print URL, step and failure type of filtered measurements** <br/>
 Measurements can be searched and filtered with a variety of filters:
 - experiment step: urlgetter_step as specified in ```["annotations"]["urlgetter_step"]``` for urlgetter measurements, or "quicping" for quicping measurements
 - URL
@@ -89,14 +89,15 @@ Check out usage below for examples.
 
 
 ### Visualize data correlation
-***Generate a sankey diagram that depicts the correlation between different urlgetter measurement steps**
+**Generate a sankey diagram that depicts the correlation between different urlgetter measurement steps**
 - ```eval.py [-h] -F FILE -s STEPS [-o OUTPATH] [-e] [-a ASN] [-c SANITYCHECK]```
+- ```eval.py [-h] -F FILE [-s STEPS] [-a ASN] [-e] [-c SANITYCHECK] [-S]```
 - the file(s) to be evaluated are defined by the ```-F``` parameter; this can be a file or a folder
-- use ```-s``` to define the 2 steps that are compared, e.g. "tcp_cached quic_cached"
-- to define the output directory use the ```-o``` option
+- use ```-s``` to define the measurement steps that are compared, e.g. "tcp_cached quic_cached" (for urlgetter step=data["annotations"]["urlgetter_step"], quicping measurements are always step="quicping"), separated by ","
+- use ```-a``` to define the target ASNs, separated by ","
 - use the flag ```-e``` to only investigate measurements that failed in the first of the two steps 
-- use ```-a``` to define the target ASN
 - use ```-c``` to specify a file for a sanity check (see above, Sanity check)
+- use ```-S``` to save the generated plot
 
 
   
