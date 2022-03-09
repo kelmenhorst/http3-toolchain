@@ -241,7 +241,7 @@ def main(out):
                 add(cummulation, measurement.input_url)
         
             else:
-                print(measurement.input_url, measurement.step, measurement.failure, measurement.failed_op)
+                print(measurement.input_url, measurement.step, measurement.failure, measurement.failed_op, measurement.time, measurement.proto, measurement.runtime)
                 print(" ")
 
     if cummulate:
