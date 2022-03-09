@@ -171,4 +171,108 @@ class URLGetterMeasurement(Measurement):
 			return None
 		except TypeError as e:
 			return None
-	
+
+	def read_write_stats(self):
+		if 'network_events' not in self.tk:
+			return None
+
+		address = None
+		t0 = None
+		tls_handshake_started = False
+		stats = {
+			'read_count': 0,
+			'write_count': 0,
+			'read_bytes': 0,
+			'write_bytes': 0,
+			'time_to_last_read': 0,
+			'time_to_last_write': 0,
+			'time_to_last_read_ok': 0,
+			'time_to_last_write_ok': 0,
+		}
+		tls_handshakes = []
+		for ne in self.tk['network_events']:
+			if ne['operation'] == 'connect':
+				address = ne['address']
+				tls_handshake_started = False
+				t0 = ne['t']
+				stats = {
+					'read_count': 0,
+					'write_count': 0,
+					'read_bytes': 0,
+					'write_bytes': 0,
+					'time_to_last_read': 0,
+					'time_to_last_write': 0,
+					'time_to_last_read_ok': 0,
+					'time_to_last_write_ok': 0,
+					'last_failure_read': None,
+					'last_failure_write': None,
+					'last_failure': None
+				}
+			
+			if ne['operation'] == 'tls_handshake_start':
+				tls_handshake_started = True
+
+			if ne['operation'] == 'quic_handshake_start':
+				tls_handshake_started = True
+				t0 = ne['t']
+				stats = {
+					'read_count': 0,
+					'write_count': 0,
+					'read_bytes': 0,
+					'write_bytes': 0,
+					'time_to_last_read': 0,
+					'time_to_last_write': 0,
+					'time_to_last_read_ok': 0,
+					'time_to_last_write_ok': 0,
+					'last_failure_read': None,
+					'last_failure_write': None,
+					'last_failure': None
+				}
+			
+			if '_handshake_done' in ne['operation']:
+				stats.update({'address': address})
+				tls_handshakes.append(stats)
+				tls_handshake_started = False
+			
+			# if not tls_handshake_started:
+			# 	continue
+			
+			if 'read' in ne['operation']:
+				stats['read_count'] += 1
+				stats['read_bytes'] += ne.get('num_bytes', 0)
+				stats['time_to_last_read'] = ne['t'] - t0
+				if not ne['failure']:
+					stats['time_to_last_read_ok'] = ne['t'] - t0
+				else:
+					stats['last_failure_read'] = ne['failure']
+				
+			if 'write' in ne['operation']:
+				if "address" in ne:
+					address = ne["address"]
+				stats['write_count'] += 1
+				stats['write_bytes'] += ne.get('num_bytes', 0)
+				stats['time_to_last_write'] = ne['t'] - t0
+				if not ne['failure']:
+					stats['time_to_last_write_ok'] = ne['t'] - t0
+				else:
+					stats['last_failure_write'] = ne['failure']
+
+		if tls_handshake_started:
+			stats.update({'address': address})
+			tls_handshakes.append(stats)
+		return tls_handshakes
+
+
+	def network_wait_time(self):
+		j = 0
+		last = None
+		for i, n in enumerate(self.tk["network_events"]):
+			# during wait time
+			if "write" in n["operation"] and last is not None:
+				continue
+			if "write" in n["operation"]:
+				last = n["t"]
+			if "read" in n["operation"] and last is not None:
+				j += n["t"] - last
+				last = None
+		return j
