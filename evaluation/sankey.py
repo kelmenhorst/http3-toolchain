@@ -33,7 +33,7 @@ def sankey(collector, outpath, evaluation, savepdf):
 		
 	n = len(failures_1)
 	if n == 0 or len(failures_2) == 0:
-		print("sankey diagram cannot be generated, no valid data")
+		print("sankey diagram cannot be generated, no valid data", failures_1, failures_2)
 		return evaluation
 
 	# create a df from the data
