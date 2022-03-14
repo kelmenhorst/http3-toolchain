@@ -248,7 +248,7 @@ def eval(file, method, onlyerrors, steps, asns, collector, sanitycheck, savepdf)
 		throttling(collector, savepdf)
 	
 	elif method == "consistency":
-		consistency(collector, steps, outpath, savepdf)
+		consistency(collector, outpath, savepdf)
 
 	elif method == "runtimes":
 		runtimes(collector, steps, outpath, savepdf)
@@ -285,7 +285,7 @@ if __name__ == "__main__":
 		collector = MeasurementCollector("step", steps)
 	elif method == "throttling" and len(asns) > 0:
 		collector = MeasurementCollector("probe_asn", asns)
-	elif method == "consistency" and len(step) > 0:
+	elif method == "consistency" and len(steps) > 0:
 		collector = MeasurementCollector("step", steps)
 	else:
 		print("invalid configuration")
