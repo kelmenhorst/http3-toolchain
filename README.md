@@ -90,8 +90,8 @@ Check out usage below for examples.
 
 ### Visualize data correlation
 **Generate a sankey diagram that depicts the correlation between different urlgetter measurement steps**
-- ```eval.py [-h] -F FILE -s STEPS [-o OUTPATH] [-e] [-a ASN] [-c SANITYCHECK]```
-- ```eval.py [-h] -F FILE [-s STEPS] [-a ASN] [-e] [-c SANITYCHECK] [-S]```
+- ```eval.py MODE [-h] -F FILE [-s STEPS] [-a ASN] [-e] [-c SANITYCHECK] [-S]```
+- ```MODE``` is the evaluation mode to use, currently it can be one of "sankey", "consistency", "throttling" (see below)
 - the file(s) to be evaluated are defined by the ```-F``` parameter; this can be a file or a folder
 - use ```-s``` to define the measurement steps that are compared, e.g. "tcp_cached quic_cached" (for urlgetter step=data["annotations"]["urlgetter_step"], quicping measurements are always step="quicping"), separated by ","
 - use ```-a``` to define the target ASNs, separated by ","
@@ -99,5 +99,19 @@ Check out usage below for examples.
 - use ```-c``` to specify a file for a sanity check (see above, Sanity check)
 - use ```-S``` to save the generated plot
 
+#### **Example usage: Sankey**
+Generate a **sankey flow** diagram to compare the results of **HTTPS and HTTP/3** urlgetter measurements (annotated with ```urlgetter_step=tcp_cached/quic_cached```) in **AS45090** for all measurement files in the **folder** ```./folder```, and **store** the resulting diagram. Use the **sanity check** file (same measurements taken from a trusted network) stored in ```./sanity_check.jsonl```
+```
+python3 eval.py sankey -F ./folder -s "tcp_cached,quic_cached" -a AS45090 -c ./sanity_check.jsonl -S
+```
+Result: 
+![sankey example](examples/sankey.png)
 
-  
+
+#### **Example usage: Consistency**
+- Generate a **CDF function** of the consistency of urlgetter HTTPS and HTTP/3 as well as quicping measurements in **AS45090** for all measurement files in the folder ```./folder``` and store the resulting diagram.
+```
+python3 eval.py consistency -F ./folder -s "tcp_cached,quic_cached,quicping" -a AS45090 -S
+```
+Result:
+![consistency example](examples/consistency.png)
