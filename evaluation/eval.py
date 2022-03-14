@@ -268,7 +268,7 @@ if __name__ == "__main__":
 	argparser.add_argument("-S", "--save", help="save result as pdf", action="store_true")
 	out, method = argparser.parse_known_args()
 
-	steps = out.steps.split(" ")
+	steps = out.steps.split(",")
 
 	asns = []
 	if out.asn is not None:
