@@ -157,7 +157,7 @@ def eval(file, method, onlyerrors, steps, asns, collector, sanitycheck, savepdf)
 				if data["input"] in unstable_hosts:
 					continue
 				mID = Measurement.mID(data, fileID, data["annotations"]["measurement_url"])
-				msrmnt = QuicpingMeasurement(data, id)
+				msrmnt = QuicpingMeasurement(data, mID)
 			
 			elif data["test_name"] == "urlgetter":
 				if not "urlgetter_step" in data["annotations"]:
