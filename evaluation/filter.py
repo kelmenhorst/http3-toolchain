@@ -172,7 +172,7 @@ def main(out):
     
     files = [out.file]
     if os.path.isdir(out.file):
-        files = glob.glob(out.file+"/2*.json*")
+        files = glob.glob(out.file+"/*.jsonl*")
     print("Processing files...", files, "\n")
 
     cummulate = False
@@ -241,7 +241,10 @@ def main(out):
                 add(cummulation, measurement.input_url)
         
             else:
-                print(measurement.input_url, measurement.step, measurement.failure, measurement.failed_op, measurement.time, measurement.proto, measurement.runtime)
+                print(measurement.input_url, measurement.step, measurement.failure, measurement.time, measurement.runtime)
+                stats = measurement.read_write_stats()
+                print(stats[0]["read_bytes"], stats[0]["read_count"])
+                print(stats[0]["time_to_last_read_ok"])
                 print(" ")
 
     if cummulate:
