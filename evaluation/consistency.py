@@ -71,6 +71,8 @@ def consistency(collector, outpath, savepdf):
 	plt.tight_layout()
 
 	if savepdf:
+		fig.set_size_inches((3, 2.3))
+		plt.tight_layout()
 		plt.savefig(outpath+"_consistency.pdf")
 	else:
 		plt.show()
