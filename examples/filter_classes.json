@@ -1,0 +1,16 @@
+[
+    {
+        "proto": "quic",
+        "step": "quic_cached",
+        "probe_asn":"AS45090"
+    },
+    {
+        "proto": "tcp",
+        "step":"tcp_cached",
+        "probe_asn":"AS45090"
+    },
+    {
+        "proto": "quicping",
+        "probe_asn":"AS45090"
+    }
+]

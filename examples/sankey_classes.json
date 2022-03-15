@@ -1,0 +1,12 @@
+{
+    "right": {
+        "proto": "quic",
+        "step": "quic_cached",
+        "probe_asn":"AS45090"
+    },
+    "left": {
+        "proto": "tcp",
+        "step":"tcp_cached",
+        "probe_asn":"AS45090"
+    }
+}

@@ -90,28 +90,28 @@ Check out usage below for examples.
 
 ### Visualize data correlation
 **Generate a sankey diagram that depicts the correlation between different urlgetter measurement steps**
-- ```eval.py MODE [-h] -F FILE [-s STEPS] [-a ASN] [-e] [-c SANITYCHECK] [-S]```
-- ```MODE``` is the evaluation mode to use, currently it can be one of "sankey", "consistency", "throttling" (see below)
-- the file(s) to be evaluated are defined by the ```-F``` parameter; this can be a file or a folder
-- use ```-s``` to define the measurement steps that are compared, e.g. "tcp_cached quic_cached" (for urlgetter step=data["annotations"]["urlgetter_step"], quicping measurements are always step="quicping"), separated by ","
-- use ```-a``` to define the target ASNs, separated by ","
-- use the flag ```-e``` to only investigate measurements that failed in the first of the two steps 
+- ```eval.py MODE [-h] -f FILE [-c SANITYCHECK] [-o OUT] [-v] [-S SANKEY] [-C FILTERS]```
+- ```MODE``` is the evaluation mode to use, currently it can be one of "sankey", "consistency", "throttling", "runtimes" (see below)
+- the file(s) to be evaluated are defined by the ```-f``` parameter; this can be a file or a folder
 - use ```-c``` to specify a file for a sanity check (see above, Sanity check)
-- use ```-S``` to save the generated plot
+- use ```-o``` to define an output file name to save the result
+- use ```-v``` to show verbose output
+- use ```-S``` to specify the name of a .json file with the filters for the two compared classes of measurements, only works with MODE "sankey",  see [./examples/sankey_classes.json](examples/sankey_classes.json)
+- use ```-C``` to specify the name of a .json file with the filters for the (multiple) compared classes of measurements, only works with MODEs "consistency", "throttling" and "runtimes", see [./examples/filter_classes.json](examples/filter_classes.json)
 
 #### **Example usage: Sankey**
-Generate a **sankey flow** diagram to compare the results of **HTTPS and HTTP/3** urlgetter measurements (annotated with ```urlgetter_step=tcp_cached/quic_cached```) in **AS45090** for all measurement files in the **folder** ```./folder```, and **store** the resulting diagram. Use the **sanity check** file (same measurements taken from a trusted network) stored in ```./sanity_check.jsonl```
+Generate a **sankey flow** diagram to compare the results of **HTTPS and HTTP/3** urlgetter measurements (annotated with ```urlgetter_step=tcp_cached/quic_cached```) in **AS45090** for all measurement files in the **folder** ```./folder```, and **store** the resulting diagram in ```example.pdf```. Use the **sanity check** file (same measurements taken from a trusted network) stored in ```./sanity_check.jsonl```
 ```
-python3 eval.py sankey -F ./folder -s "tcp_cached,quic_cached" -a AS45090 -c ./sanity_check.jsonl -S
+python3 eval.py sankey -f ./folder -S ../examples/sankey_classes.json -c ./sanity_check.jsonl -o example.pdf
 ```
 Result: 
 ![sankey example](examples/sankey.png)
 
 
 #### **Example usage: Consistency**
-- Generate a **CDF function** of the consistency of urlgetter HTTPS and HTTP/3 as well as quicping measurements in **AS45090** for all measurement files in the folder ```./folder``` and store the resulting diagram.
+- Generate a **CDF function** of the consistency of urlgetter HTTPS and HTTP/3 as well as quicping measurements in **AS45090** for all measurement files in the folder ```./folder``` and store the resulting diagram in example.pdf.
 ```
-python3 eval.py consistency -F ./folder -s "tcp_cached,quic_cached,quicping" -a AS45090 -S
+python3 eval.py consistency -f ./folder -C ../examples/filter_classes.json -o example.pdf
 ```
 Result:
 ![consistency example](examples/consistency.png)
