@@ -255,8 +255,7 @@ def eval(file, method, collector, sanitycheck, outfile):
 		
 if __name__ == "__main__":
 	# Create the parser
-	usage = "eval.py MODE [-h] -F FILE [-c SANITYCHECK] [-S] \n		MODE on of \"sankey\", \"throttling\", \"consistency\""
-	argparser = argparse.ArgumentParser(description='Visualizes correlation of two experiment steps.', usage=usage)
+	argparser = argparse.ArgumentParser(description='Visualizes correlation of two experiment steps.')
 
 	# Add the arguments
 	argparser.add_argument("-f", "--file", help="input file or folder", required=True)
