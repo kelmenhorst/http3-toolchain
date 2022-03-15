@@ -19,37 +19,50 @@ import ipinfo
 access_token = 'c896c6da34ef96'
 handler = ipinfo.getHandler(access_token)
 
-timestamp_fmt = '%Y-%m-%d %H:%M:%S'
+
+verbose = False
+
 
 class MeasurementCollector:
-	def __init__(self, c, keys):
-		self.classifier = c
+	def __init__(self, classes):
+		self.classes = classes
 		self.collection = {}
-		for k in keys:
-			self.collection[k] = {}
+		for c in self.classes:
+			key = json.dumps(c)
+			self.collection[key] = {}
+	
+	def check_and_add(self, measurement):
+		cl = self.check(measurement)
+		if cl is None:
+			return
 
-	def add_by_ID(self, measurement):
-		key = getattr(measurement, self.classifier)
+		key = json.dumps(cl)
+		if measurement.id in self.collection[key]:
+			if verbose:
+				print("already in collector", measurement.id)
+			return
 		self.collection[key][measurement.id] = measurement
 
-	def has_key(self, measurement):
-		key = getattr(measurement, self.classifier)
-		return key in self.collection
+	def check(self, measurement):
+		belongs_to = None
+		for clss in self.classes:
+			belong_to_class = True
+			for k, v in clss.items():
+				try:
+					if getattr(measurement, k) != v:
+						belong_to_class = False
+				except:
+					if verbose:
+						print("unknown attribute", k)
+					belong_to_class = False
+			if belong_to_class:
+				return clss
+		return None
 
-	def has_id(self, id, measurement):
-		key = getattr(measurement, self.classifier)
-		if not key in self.collection:
-			return False
-		return id in self.collection[key]
-
-	def set_only_err(self):
-		for s in self.collection:
-			self.collection[s] = {k:v for (k,v) in self.collection[s].items() if v.failure is not None}
-	
 	def class_items(self):
 		return self.collection.items()
 
-	def classes(self):
+	def class_values(self):
 		return self.collection.values()
 	
 	def classifiers(self):
@@ -62,7 +75,7 @@ def get_ipinfo(ip):
 
 
 def conditional_eval(collector, evaluation):
-	data_1, data_2 = collector.classes()
+	data_1, data_2 = collector.class_values()
 
 	failures = [v.error_type() for (k,v) in data_1.items() if v.failure is not None]
 	u_failures = list(dict.fromkeys(failures))
@@ -90,7 +103,13 @@ def conditional_eval(collector, evaluation):
 	return evaluation
 
 
-def eval(file, method, onlyerrors, steps, asns, collector, sanitycheck, savepdf):
+def eval(file, method, collector, sanitycheck, outfile):
+	# output file
+	if outfile:
+		if not outfile.endswith(".pdf"):
+			outfile += ".pdf"
+
+	# sanity check
 	unstable_hosts = {}
 	if sanitycheck:
 		lines = []
@@ -102,35 +121,21 @@ def eval(file, method, onlyerrors, steps, asns, collector, sanitycheck, savepdf)
 				continue
 			if data["test_keys"]["failure"] is not None and not ("cloudflare" in data["input"] or "quic.nginx.org" in data["input"] or "plus.im" in data["input"]):
 				unstable_hosts[data["input"]] = True
-	print("Unstable hosts:", unstable_hosts.keys())
+	print("\nUnstable hosts:", list(unstable_hosts.keys()))
 
+	# evaluation stats
 	evaluation = {}
-		
-	files = [file]
-	if os.path.isdir(file):
-		files = glob.glob(file+"/*.json*")
-		outpath = file
-	else:
-		outpath = os.path.dirname(file)
-
-	filename = "result"
-	for a in asns:
-		filename += "_" + a
-		break
-	for s in steps:
-		filename += "_" + s
-	if sanitycheck:
-		filename += "_checked"
-		
-	outpath = os.path.join(outpath, filename)
-
-
-	print("Processing files...", files, "\n")
-
 	possible_asns = {}
 	inputs = {}
 	min_time_stamp = None
 	max_time_stamp = None
+	
+	# input files
+	files = [file]
+	if os.path.isdir(file):
+		files = glob.glob(file+"/*.json*")
+	print("Processing files...", files, "\n")
+
 
 	for f in files:
 		if "_evaluation.json" in f:
@@ -138,7 +143,8 @@ def eval(file, method, onlyerrors, steps, asns, collector, sanitycheck, savepdf)
 		if "sanity" in f or "oldlist" in f:
 			continue
 		fileID = f.split("/")[-1]
-		print(fileID)
+		if verbose:
+			print(fileID)
 		lines = []
 		try:
 			with gzip.open(f, 'r') as dump:
@@ -152,7 +158,6 @@ def eval(file, method, onlyerrors, steps, asns, collector, sanitycheck, savepdf)
 			
 			possible_asns[data["probe_asn"]] = True
 		
-
 			if data["test_name"] == "quicping":
 				if data["input"] in unstable_hosts:
 					continue
@@ -170,12 +175,14 @@ def eval(file, method, onlyerrors, steps, asns, collector, sanitycheck, savepdf)
 				if url_ in unstable_hosts:
 					continue
 			
-
-				# mID = fileID + "-" + url_ + data["probe_asn"] + data["test_name"]
+				# create Measurement instance
 				mID = Measurement.mID(data, fileID, url_)
 				msrmnt = URLGetterMeasurement(data, mID)
 
+				# disregard DNS censorship
 				if msrmnt.unexpectedly_ran_resolve():
+					if verbose:
+						print("possible DNS manipulation", msrmnt.input_url, msrmnt.failure)
 					continue
 			
 				# disregard DNS failures
@@ -184,30 +191,24 @@ def eval(file, method, onlyerrors, steps, asns, collector, sanitycheck, savepdf)
 
 			else:
 				continue
-			if msrmnt.step not in steps:
-				continue
-			if len(asns) > 0 and msrmnt.probe_asn not in asns:
-				continue
+			
 			if "_sni" in msrmnt.step and msrmnt.failure is not None and ("ssl_failed_handshake" in msrmnt.failure or "tls: handshake failure" in msrmnt.failure):
-				print("sni failure")
+				if verbose:
+					print("sni failure")
 				continue
 
-			if collector.has_id(mID, msrmnt):
-				print("already in collector", mID, data["test_name"], data["measurement_start_time"])
-				continue
+			collector.check_and_add(msrmnt)
 
-			collector.add_by_ID(msrmnt)
-
-			tstamp = datetime.strptime(data["measurement_start_time"], timestamp_fmt)
+			# evaluation stats
+			tstamp = datetime.strptime(data["measurement_start_time"], '%Y-%m-%d %H:%M:%S')
 			if max_time_stamp is None or tstamp > max_time_stamp:
 				max_time_stamp = tstamp
 			if min_time_stamp is None or tstamp < min_time_stamp:
 				min_time_stamp = tstamp
-			if msrmnt.step == steps[0]:
-				if url_ not in inputs:
-					inputs[url_] = [data["measurement_start_time"]]
-				else:
-					inputs[url_].append(data["measurement_start_time"])
+			if url_ not in inputs:
+				inputs[url_] = [data["measurement_start_time"]]
+			else:
+				inputs[url_].append(data["measurement_start_time"])
 
 
 	evaluation["test_list"] = inputs
@@ -233,63 +234,84 @@ def eval(file, method, onlyerrors, steps, asns, collector, sanitycheck, savepdf)
 			q_errors = {}
 			print("--",f, failures.count(f))
 
-
-	if onlyerrors:
-		collector.set_only_err()
-
 	
 	if method == "sankey":
 		evaluation = conditional_eval(collector, evaluation)
-		evaluation = sankey(collector, outpath, evaluation, savepdf)
-		with open(outpath +"_evaluation.json", "w") as e:
-			json.dump(evaluation, e, indent=4, sort_keys=True, default=str)
+		evaluation = sankey(collector, evaluation, outfile)
+		if outfile:
+			with open(outfile.replace(".pdf", "_evaluation.json"), "w") as e:
+				json.dump(evaluation, e, indent=4, sort_keys=True, default=str)
 	
 	elif method == "throttling":
-		throttling(collector, savepdf)
+		throttling(collector, outfile)
 	
 	elif method == "consistency":
-		consistency(collector, outpath, savepdf)
+		consistency(collector, outfile)
 
 	elif method == "runtimes":
-		runtimes(collector, steps, outpath, savepdf)
+		runtimes(collector, outfile)
 
 
 		
 if __name__ == "__main__":
 	# Create the parser
-	usage = "eval.py MODE [-h] -F FILE [-s STEPS] [-a ASN] [-e] [-c SANITYCHECK] [-S] \n		MODE on of \"sankey\", \"throttling\", \"consistency\""
+	usage = "eval.py MODE [-h] -F FILE [-c SANITYCHECK] [-S] \n		MODE on of \"sankey\", \"throttling\", \"consistency\""
 	argparser = argparse.ArgumentParser(description='Visualizes correlation of two experiment steps.', usage=usage)
 
 	# Add the arguments
-	argparser.add_argument("-F", "--file", help="input file or folder", required=True)
-	argparser.add_argument("-s", "--steps", help="name(s) of (two) urlgetter step(s) to investigate")
-	argparser.add_argument("-a", "--asn", help="asn")
-	argparser.add_argument("-e", "--onlyerrors", help="only consider failure cases", action="store_true")
+	argparser.add_argument("-f", "--file", help="input file or folder", required=True)
 	argparser.add_argument("-c", "--sanitycheck", help="report file with sanity check measurement")
-	argparser.add_argument("-S", "--save", help="save result as pdf", action="store_true")
-	out, method = argparser.parse_known_args()
+	argparser.add_argument("-o", "--out", help="save result as pdf")
+	argparser.add_argument("-v", "--verbose", action='store_true')
+	argparser.add_argument("-S", "--sankey", help="sides of sankey diagram, json style object, (see ./examples, full list of possible attributes in README)")
+	argparser.add_argument("-C", "--filters", help="file with classes to analyse, as filters, json style, (see examples, full list of possible attributes in README)")
+	args, method = argparser.parse_known_args()
 
-	steps = out.steps.split(",")
+	verbose = args.verbose
 
-	asns = []
-	if out.asn is not None:
-		asns = out.asn.split(",")
+	if not os.path.exists(args.file):
+		print("Failure:", args.file, "doesn't exist. Exiting...")
+		sys.exit()
 
+	if args.filters:
+		try:
+			with open(args.filters, "r") as cf:
+				data = cf.read()
+			classes = json.loads(data)
+			print("classes:", classes)
+		except Exception as e:
+			print("Failure: Parsing", args.filters, "failed:", e+". Exiting...")
+			sys.exit()
+	
+	if args.sankey:
+		try:
+			with open(args.sankey, "r") as cf:
+				data = cf.read()
+			filters = json.loads(data)
+			left_filter = filters["left"]
+			print("Sankey filter left:", left_filter)
+			right_filter = filters["right"]
+			print("Sankey filter right:", right_filter)
+
+		except Exception as e:
+			print("Failure: Parsing", args.sankey, "failed:", e+". Exiting...")
+			sys.exit()
+		
 	if len(method) != 1:
-		print("could not parse method")
+		print("Failure: Could not parse method. Exiting...")
 		sys.exit()
 	method = method[0]
 	
-	if method == "sankey" and len(steps) == 2:
-		collector = MeasurementCollector("step", steps)
-	elif method == "throttling" and len(steps) >= len(asns) and len(steps) > 0:
-		collector = MeasurementCollector("step", steps)
-	elif method == "throttling" and len(asns) > 0:
-		collector = MeasurementCollector("probe_asn", asns)
-	elif method == "consistency" and len(steps) > 0:
-		collector = MeasurementCollector("step", steps)
+	if method == "sankey" and left_filter and right_filter:
+		collector = MeasurementCollector([left_filter, right_filter])
+	elif method == "throttling" and classes:
+		collector = MeasurementCollector(classes)
+	elif method == "consistency" and classes:
+		collector = MeasurementCollector(classes)
+	elif method == "runtimes" and classes:
+		collector = MeasurementCollector(classes)
 	else:
-		print("invalid configuration")
+		print("Failure: Invalid configuration. Exiting...")
 		sys.exit()
 
-	eval(out.file, method, out.onlyerrors, steps, asns, collector, out.sanitycheck, out.save)
+	eval(args.file, method, collector, args.sanitycheck, args.out)

@@ -13,14 +13,14 @@ def get_ipinfo(ip):
 	return handler.getDetails(ip)
 
 
-def consistency(collector, outpath, savepdf):
+def consistency(collector, outfile):
 	stepnames = collector.classifiers()
 
 	for i, n in enumerate(stepnames):
 		stepnames[i] = n.replace("_cached", "")
 
 	plotdata = []
-	for i, data in enumerate(collector.classes()):
+	for i, data in enumerate(collector.class_values()):
 		host_map = {}
 		for k, q in data.items():
 			host = q.input_url.replace("https://", "")
@@ -38,7 +38,6 @@ def consistency(collector, outpath, savepdf):
 
 		cons = []
 		out = []
-		print((host_map))
 		for host, events in host_map.items():
 			max_e = max(events, key=events.get)
 			s = sum(events.values())
@@ -47,12 +46,8 @@ def consistency(collector, outpath, savepdf):
 			if max_quotient < 1 and host not in out:
 				out.append(host)
 			cons.append(max_quotient*100)
-		print(len(cons))
 		plotdata.append(cons)
-		print("O",cons)
 
-	for o in out:
-		print(o)
 
 	fig = plt.figure()
 	for pl in plotdata:
@@ -70,9 +65,9 @@ def consistency(collector, outpath, savepdf):
 	plt.ylim(0,100)
 	plt.tight_layout()
 
-	if savepdf:
-		fig.set_size_inches((3, 2.3))
-		plt.tight_layout()
-		plt.savefig(outpath+"_consistency.pdf")
+	fig.set_size_inches((3, 2.3))
+	plt.tight_layout()
+	if outfile:
+		plt.savefig(outfile)
 	else:
 		plt.show()

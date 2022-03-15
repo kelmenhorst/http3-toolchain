@@ -25,7 +25,7 @@ class QuicpingMeasurement(Measurement):
 		self.pings = self.tk["pings"]
 		self.step = "quicping"
 		self.failure = None
-		self.proto = "quic"
+		self.proto = "quicping"
 		try:
 			self.runtime = self.pings[0]["responses"][0]["t"] - 1
 		except:
@@ -70,18 +70,20 @@ class URLGetterMeasurement(Measurement):
 		self.step = data["annotations"]["urlgetter_step"]
 		try:
 			self.probe_ip = self.tk["queries"][0]["answers"][0]["ipv4"]
-			self.proto = self.tk["requests"][0]["request"]["x_transport"]
 		except:
 			self.probe_ip = ""
-			self.proto = ""
 			pass
+		try:
+			self.proto = self.tk["requests"][0]["request"]["x_transport"]
+		except: # assume this flag is set correctly
+			if "HTTP3Enabled=true" in data["options"]:
+				self.proto = "quic"
+			else:
+				self.proto = "tcp"
 		try:
 			self.sni = self.tk["tls_handshakes"][0]["server_name"]
 		except:
 			self.sni = urlparse(self.input_url).netloc
-			# for o in data["options"]:
-			# 	if "TLSServerName" in o:
-			# 		self.sni = o.split("=")[1]
 		
 	def error_type(self):
 		# if self.closedconn():
@@ -156,7 +158,6 @@ class URLGetterMeasurement(Measurement):
 			if e["operation"] == "resolve_start":
 				# when the cache is used, resolve_done should come immediately after resolve_start
 				if events[i+1]["operation"] != "resolve_done":
-					print("possible DNS manipulation", self.input_url, self.failure)
 					return True
 		return False
 	

@@ -2,10 +2,14 @@ import matplotlib as mpl
 mpl.rcParams['pdf.fonttype'] = 42
 mpl.rcParams['ps.fonttype'] = 42
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import numpy as np
 
 SMALL_SIZE = 8
 MEDIUM_SIZE = 10
 BIGGER_SIZE = 12
+
+RAINBOW = cm.rainbow(np.linspace(0, 2, 10))
 
 plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
 plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title

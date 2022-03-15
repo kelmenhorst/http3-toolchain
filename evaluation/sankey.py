@@ -8,9 +8,9 @@ from error import IGNORE_ERR
 
 IGNORE_SMALLER_VALUES = 0
 
-def sankey(collector, outpath, evaluation, savepdf):
+def sankey(collector, evaluation, outfile):
 	steps = collector.classifiers()
-	data_1, data_2 = collector.classes()
+	data_1, data_2 = collector.class_values()
 
 	print("\n\n\nCorrelation Matrix (Sankey)\n", steps)
 	global cc
@@ -77,10 +77,9 @@ def sankey(collector, outpath, evaluation, savepdf):
 
 	hv.extension('matplotlib')
 	sankey.opts(opts.Sankey(cmap=CMAP,labels='index', edge_color=dim(steps[0]).str(),node_color=dim('index').str(), label_text_font_size="xx-large", label_position="outer", node_width=50, show_values=True, fig_size=160))
-	if savepdf:
-		hv.Store.renderers['matplotlib'].save(sankey, outpath, 'pdf')
+	if outfile:
+		hv.Store.renderers['matplotlib'].save(sankey, outfile.replace(".pdf", ""), 'pdf')
 	else:
 		show(hv.render(sankey, "bokeh", dpi = 500))
 
-	
 	return evaluation
