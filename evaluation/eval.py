@@ -315,7 +315,7 @@ if __name__ == "__main__":
 			classes = json.loads(data)
 			print("classes:", classes)
 		except Exception as e:
-			print("Failure: Parsing", args.filters, "failed:", e+". Exiting...")
+			print("Failure: Parsing", args.filters, "failed:", e, ". Exiting...")
 			sys.exit()
 	
 	if args.sankey:
@@ -329,7 +329,7 @@ if __name__ == "__main__":
 			print("Sankey filter right:", right_filter)
 
 		except Exception as e:
-			print("Failure: Parsing", args.sankey, "failed:", e+". Exiting...")
+			print("Failure: Parsing", args.sankey, "failed:", e, ". Exiting...")
 			sys.exit()
 		
 	if len(method) != 1:
