@@ -49,11 +49,16 @@ class MeasurementCollector:
 			belong_to_class = True
 			for k, v in clss.items():
 				try:
-					if getattr(measurement, k) != v:
+					measurement_attr = getattr(measurement, k)
+					if k == "failure" and v == "*":
+						if measurement_attr is None:
+							belong_to_class = False
+						continue
+					if not v in measurement_attr:
 						belong_to_class = False
-				except:
+				except AttributeError as e:
 					if verbose:
-						print("unknown attribute", k)
+						print(e)
 					belong_to_class = False
 			if belong_to_class:
 				return clss
