@@ -35,7 +35,7 @@ def throttling_read_speed(collector):
                 if rw['time_to_last_read_ok'] > 0:
                     read_speed = float(rw['read_bytes'])/rw['time_to_last_read_ok']
                     y_read_speeds[step].append(read_speed)
-                    times[step].append(measurement.time)
+                    times[step].append(measurement.measurement_start_time)
     
     for step in collector:
         ti = [parser.parse(t) for t in times[step]]
@@ -79,9 +79,9 @@ def throttling(collector, savepdf):
                     except:
                         pass
                 
-                urls_by_bytes[s] = measurement.input_url
-                unique_urls[measurement.input_url] = True 
-                data[measurement.id] = {"u": measurement.input_url, "t": datapoints_t, "b": datapoints_b}
+                urls_by_bytes[s] = measurement.input
+                unique_urls[measurement.input] = True 
+                data[measurement.id] = {"u": measurement.input, "t": datapoints_t, "b": datapoints_b}
 
             except:
                 pass

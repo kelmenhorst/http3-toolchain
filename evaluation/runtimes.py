@@ -19,8 +19,8 @@ def runtimes(collector, outfile):
         for k, q in data.items():
             if q.failure is not None:
                 continue
-            if isinstance(q.runtime, numbers.Number):
-                cons.append(q.runtime)
+            if isinstance(q.test_runtime, numbers.Number):
+                cons.append(q.test_runtime)
         plotdata.append(cons)
 
     fig = plt.figure()

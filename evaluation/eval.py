@@ -98,7 +98,7 @@ def conditional_eval(collector, evaluation):
 				try:
 					print("---", data_2[id].error_type(), data_1[id].failed_op, data_2[id].failed_op)
 					qn = q_errors.get(data_2[id].error_type(),[])
-					qn.append(data_2[id].input_url+" "+data_2[id].probe_ip)
+					qn.append(data_2[id].input+" "+data_2[id].probe_ip)
 					q_errors[data_2[id].error_type()] = qn
 					
 				except KeyError as e:
@@ -211,7 +211,7 @@ def eval(file, method, collector, sanitycheck, outfile):
 				# disregard DNS censorship
 				if msrmnt.unexpectedly_ran_resolve():
 					if verbose:
-						print("possible DNS manipulation", msrmnt.input_url, msrmnt.failure)
+						print("possible DNS manipulation", msrmnt.input, msrmnt.failure)
 					continue
 			
 				# disregard DNS failures
@@ -221,7 +221,7 @@ def eval(file, method, collector, sanitycheck, outfile):
 			else:
 				continue
 			
-			if "_sni" in msrmnt.step and msrmnt.failure is not None and ("ssl_failed_handshake" in msrmnt.failure or "tls: handshake failure" in msrmnt.failure):
+			if msrmnt.test_name == "urlgetter" and "_sni" in msrmnt.urlgetter_step and msrmnt.failure is not None and ("ssl_failed_handshake" in msrmnt.failure or "tls: handshake failure" in msrmnt.failure):
 				if verbose:
 					print("sni failure")
 				continue

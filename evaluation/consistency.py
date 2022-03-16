@@ -23,7 +23,7 @@ def consistency(collector, outfile):
 	for i, data in enumerate(collector.class_values()):
 		host_map = {}
 		for k, q in data.items():
-			host = q.input_url.replace("https://", "")
+			host = q.input.replace("https://", "")
 			e = q.error_type()
 			host = host.split("/")[0]
 			if host in host_map:

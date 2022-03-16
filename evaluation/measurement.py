@@ -11,25 +11,24 @@ class Measurement:
 		self.id = id
 		self.tk = data["test_keys"]
 		self.probe_asn = data["probe_asn"]
-		self.probe_country = data["probe_cc"]
+		self.probe_cc = data["probe_cc"]
 		self.test_name = data["test_name"]
-		self.time = data["measurement_start_time"]
-		self.runtime = data["test_runtime"]
+		self.measurement_start_time = data["measurement_start_time"]
+		self.test_runtime = data["test_runtime"]
 
 class QuicpingMeasurement(Measurement):
 	def __init__(self, data, id):
 		Measurement.__init__(self, data, id) 
-		self.input_url = data["annotations"]["measurement_url"]
-		self.input_domain = urlparse(self.input_url).netloc
+		self.input = data["annotations"]["measurement_url"]
+		self.input_domain = urlparse(self.input).netloc
 		self.domain = self.tk["domain"]
 		self.pings = self.tk["pings"]
-		self.step = "quicping"
 		self.failure = None
 		self.proto = "quicping"
 		try:
-			self.runtime = self.pings[0]["responses"][0]["t"] - 1
+			self.test_runtime = self.pings[0]["responses"][0]["t"] - 1
 		except:
-			self.runtime = ""
+			self.test_runtime = ""
 			pass
 		pingresults = [p["failure"] for p in self.pings]
 		if None in pingresults:
@@ -40,6 +39,7 @@ class QuicpingMeasurement(Measurement):
 		if self.failure is not None:
 			self.failed_op = "ping"
 		self.probe_ip = data["input"]
+		self.server = None
 	
 	def get_server(self):
 		return None
@@ -62,12 +62,12 @@ class QuicpingMeasurement(Measurement):
 class URLGetterMeasurement(Measurement): 
 	def __init__(self, data, id):
 		Measurement.__init__(self, data, id) 
-		self.input_url = data["input"]
-		self.input_domain = urlparse(self.input_url).netloc
+		self.input = data["input"]
+		self.input_domain = urlparse(self.input).netloc
 		self.failure = self.tk["failure"]
 		self.ops = self.get_successful_operations()
 		self.failed_op = self.get_failed_operation()
-		self.step = data["annotations"]["urlgetter_step"]
+		self.urlgetter_step = data["annotations"]["urlgetter_step"]
 		try:
 			self.probe_ip = self.tk["queries"][0]["answers"][0]["ipv4"]
 		except:
@@ -81,9 +81,10 @@ class URLGetterMeasurement(Measurement):
 			else:
 				self.proto = "tcp"
 		try:
-			self.sni = self.tk["tls_handshakes"][0]["server_name"]
+			self.server_name = self.tk["tls_handshakes"][0]["server_name"]
 		except:
-			self.sni = urlparse(self.input_url).netloc
+			self.server_name = urlparse(self.input).netloc
+		self.server = self.get_server()
 		
 	def error_type(self):
 		# if self.closedconn():
