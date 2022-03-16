@@ -57,47 +57,20 @@
 
 ## [Examine and visualize the results](evaluation)
 **Sanity checks** <br/>
-For both evaluation scripts, you can add a postprocessing sanity check. The base of the sanity check is a json(l) file which contains a measurement taken in a trusted (i.e. uncensored) network using the same input as the analyzed meausurement(s). The idea is that, if servers have malfunctions or their QUIC support is unstable, it shows up as a failure in an uncensored network and should be filtered out from the measurements. Momentary malfunctions are not filtered out with this mechanism.
+For the evaluation script, you can add a postprocessing sanity check. The base of the sanity check is a json(l) file which contains a measurement taken in a trusted (i.e. uncensored) network using the same input as the analyzed meausurement(s). The idea is that, if servers have malfunctions or their QUIC support is unstable, it shows up as a failure in an uncensored network and should be filtered out from the measurements. Momentary malfunctions are not filtered out with this mechanism.
 
-### Filter measurements
-**Print URL, step and failure type of filtered measurements** <br/>
-Measurements can be searched and filtered with a variety of filters:
-- experiment step: urlgetter_step as specified in ```["annotations"]["urlgetter_step"]``` for urlgetter measurements, or "quicping" for quicping measurements
-- URL
-- IP address
-- transport protocol
-- ASN
-- failure types
-- server type 
-Check out usage below for examples.
-
-**Usage***
-- ```filter.py [-h] -F FILE [-s STEPS] [-u INPUTURL] [-ip IP] [-p PROTO] [-a ASN] [-t FAILURETYPE] [-m SERVER] [-f] [-S] [-d] [-l] [-c SANITYCHECK][-T RUNTIME]```
-- use ```-F``` parameter to define the file(s) to be evaluated; this can be a file or a folder
-- use filter ```-s``` to only examine certain measurement steps, e.g. "tcp_cached"
-- use filter ```-u``` to investigate measurements of a specific URL
-- use filter ```-ip``` to investigate measurements of a specific IP address
-- use filter ```-p``` to investigate measurements of a specific protocol, e.g. "quic", "tcp"
-- use filter ```-a``` to investigate measurements of a specific ASN, e.g. "AS6805"
-- use filter ```-t``` to investigate measurements with specific failure types, e.g. "TLS-hs-to TCP-hs-to"
-- use filter ```-m``` to investigate measurements of a specific server type, e.g. "nginx", "cloudflare"
-- use the flag ```-f``` to only examine failed measurements
-- use the flag ```-S``` to only examine successful measurements
-- use ```-d``` to print cummulative result as a dictionary at the end
-- use ```-l``` to print cummulative result as a list at the end
-- use ```-c``` to specify a file for a sanity check (see above, Sanity check)
 
 
 ### Visualize data correlation
 **Generate a sankey diagram that depicts the correlation between different urlgetter measurement steps**
 - ```eval.py MODE [-h] -f FILE [-c SANITYCHECK] [-o OUT] [-v] [-S SANKEY] [-C FILTERS]```
-- ```MODE``` is the evaluation mode to use, currently it can be one of "sankey", "consistency", "throttling", "runtimes" (see below)
+- ```MODE``` is the evaluation mode to use, currently it can be one of "sankey", "consistency", "throttling", "runtimes", "print-details", "print-urls" (see below)
 - the file(s) to be evaluated are defined by the ```-f``` parameter; this can be a file or a folder
 - use ```-c``` to specify a file for a sanity check (see above, Sanity check)
 - use ```-o``` to define an output file name to save the result
 - use ```-v``` to show verbose output
-- use ```-S``` to specify the name of a .json file with the filters for the two compared classes of measurements, only works with MODE "sankey",  see [./examples/sankey_classes.json](examples/sankey_classes.json)
-- use ```-C``` to specify the name of a .json file with the filters for the (multiple) compared classes of measurements, only works with MODEs "consistency", "throttling" and "runtimes", see [./examples/filter_classes.json](examples/filter_classes.json)
+- use ```-S``` to specify the name of a .json file with the filters for the two compared classes of measurements, only works with MODE "sankey",  see [examples/sankey_classes.json](examples/sankey_classes.json). [examples/filter_classes.json](examples/filter_classes.json) contains the full list of supported filters.
+- use ```-C``` to specify the name of a .json file with the filters for the (multiple) compared classes of measurements, only works with MODEs "consistency", "throttling" and "runtimes", see [./examples/filter_classes.json](examples/filter_classes.json) for a full list of supported filters.
 
 #### **Example usage: Sankey**
 Generate a **sankey flow** diagram to compare the results of **HTTPS and HTTP/3** urlgetter measurements (annotated with ```urlgetter_step=tcp_cached/quic_cached```) in **AS45090** for all measurement files in the **folder** ```./folder```, and **store** the resulting diagram in ```example.pdf```. Use the **sanity check** file (same measurements taken from a trusted network) stored in ```./sanity_check.jsonl```

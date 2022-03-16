@@ -102,6 +102,30 @@ def conditional_eval(collector, evaluation):
 		evaluation["conditional_eval"][f]["step_2"] = q_errors
 	return evaluation
 
+def print_urls(collector, outfile):
+	for k, clss in collector.class_items():
+		urls = {}
+		print("\n"+k+"\n")
+		for measurement in clss.values():
+			if measurement.input in urls:
+				urls[measurement.input] += 1
+			else:
+				urls[measurement.input] = 1
+		print(urls)
+
+def print_details(collector, outfile):
+	for k, clss in collector.class_items():
+		urls = {}
+		print("\n"+k+"\n")
+		for measurement in clss.values():
+			print(measurement.input, measurement.proto, measurement.failure, measurement.measurement_start_time, measurement.test_runtime)
+			try:
+				stats = measurement.read_write_stats()
+				print(stats[0]["read_bytes"], stats[0]["read_count"])
+				print(stats[0]["time_to_last_read_ok"])
+			except:
+				pass
+			print(" ")
 
 def eval(file, method, collector, sanitycheck, outfile):
 	# output file
@@ -250,6 +274,13 @@ def eval(file, method, collector, sanitycheck, outfile):
 
 	elif method == "runtimes":
 		runtimes(collector, outfile)
+	
+	elif method == "print-details":
+		print_details(collector, outfile)
+
+	elif method == "print-urls":
+		print_urls(collector, outfile)
+
 
 
 		
@@ -308,6 +339,10 @@ if __name__ == "__main__":
 	elif method == "consistency" and classes:
 		collector = MeasurementCollector(classes)
 	elif method == "runtimes" and classes:
+		collector = MeasurementCollector(classes)
+	elif method == "print-urls" and classes:
+		collector = MeasurementCollector(classes)
+	elif method == "print-details" and classes:
 		collector = MeasurementCollector(classes)
 	else:
 		print("Failure: Invalid configuration. Exiting...")
