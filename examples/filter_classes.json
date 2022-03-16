@@ -1,16 +1,25 @@
 [
     {
-        "proto": "quic",
-        "step": "quic_cached",
-        "probe_asn":"AS45090"
-    },
-    {
-        "proto": "tcp",
-        "step":"tcp_cached",
-        "probe_asn":"AS45090"
+        "proto": "quic, tcp",
+        "probe_asn":"e.g. AS45090",
+        "probe_cc":"e.g. CN",
+        "test_name":"urlgetter",
+        "measurement_start_time":"e.g. 2022-02-14",
+        "input":"e.g. https://google.com",
+        "failure": null,
+        "failed_op":"TCP-hs, TLS-hs, QUIC-hs, conn",
+        "probe_ip":"e.g. 216.58.213.206",
+        "urlgetter_step":"e.g. quic_cached_sni"
     },
     {
         "proto": "quicping",
-        "probe_asn":"AS45090"
+        "probe_asn":"e.g. AS45090",
+        "probe_cc":"e.g. CN",
+        "test_name":"quicping",
+        "measurement_start_time":"e.g. 2022-02-14",
+        "input":"e.g. https://google.com",
+        "failure":null,
+        "failed_op":"ping",
+        "domain":"e.g. google.com"
     }
 ]
