@@ -1,5 +1,13 @@
 # Workflow: HTTP/3 censorship measurements with URLGETTER
 
+## Requirements
+
+**Minimum requirements for simple analysis:** <br/>
+```pip3 install -r evaluation/min_requirements.txt```
+
+**All requirements:** <br/>
+```pip3 install -r requirements.txt```
+
 ## [Input generation](preprocessing)
 
 ## [Run the measurement](runscript.py)

@@ -1,0 +1,8 @@
+requests
+pandas
+numpy
+matplotlib
+dateutil 
+seaborn == 0.11.2
+holoviews == 1.14.3
+bokeh == 2.2.3

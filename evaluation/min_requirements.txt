@@ -1,0 +1,5 @@
+numpy
+pandas
+matplotlib
+holoviews == 1.14.3
+bokeh == 2.2.3
