@@ -100,13 +100,15 @@ class URLGetterMeasurement(Measurement):
 				return "conn-to"
 			else:
 				return self.failed_op + "-to"
-		elif "No recent network activity" in self.failure:
+		elif "no recent network activity" in self.failure.lower():
 			if any(r.match(op) for op in self.ops):
 				return "conn-to"
 		elif "eof" in self.failure:
 			return "EOF-err"
 		elif "PROTOCOL_ERROR" in self.failure:
 			return "proto-err"
+		elif "ssl_failed_handshake" in self.failure:
+			return "TLS-hs-err"
 		elif "unknown_failure" in self.failure:
 			if "tls:" in self.failure:
 				return "TLS-err"

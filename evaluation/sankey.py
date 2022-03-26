@@ -1,8 +1,9 @@
 import holoviews as hv
-from holoviews import opts, dim
 hv.extension('bokeh')
+from holoviews import opts, dim
 from bokeh.plotting import show
 import pandas as pd
+
 from visualize import CMAP
 from error import IGNORE_ERR
 

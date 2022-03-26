@@ -4,21 +4,9 @@ import os
 import glob
 import argparse
 import gzip
-import sys
-import pandas as pd
 from datetime import datetime
-import numpy as np
-from consistency import consistency
+
 from measurement import Measurement, URLGetterMeasurement, QuicpingMeasurement
-from sankey import sankey
-from timing import time_of_day
-from runtimes import runtimes
-from throttling import throttling
-
-import ipinfo
-access_token = 'c896c6da34ef96'
-handler = ipinfo.getHandler(access_token)
-
 
 verbose = False
 
@@ -39,7 +27,7 @@ class MeasurementCollector:
 		key = json.dumps(cl)
 		if measurement.id in self.collection[key]:
 			if verbose:
-				print("already in collector", measurement.id)
+				print("already in collector", key, measurement.id)
 			return
 		self.collection[key][measurement.id] = measurement
 
@@ -50,11 +38,15 @@ class MeasurementCollector:
 			for k, v in clss.items():
 				try:
 					measurement_attr = getattr(measurement, k)
+					if type(v) == list:
+						if measurement_attr not in v:
+							belong_to_class = False
+						continue
 					if k == "failure" and v == "*":
 						if measurement_attr is None:
 							belong_to_class = False
 						continue
-					if not v in measurement_attr:
+					if v != measurement_attr:
 						belong_to_class = False
 				except AttributeError as e:
 					if verbose:
@@ -72,11 +64,6 @@ class MeasurementCollector:
 	
 	def classifiers(self):
 		return list(self.collection.keys())
-
-
-
-def get_ipinfo(ip):
-	return handler.getDetails(ip)
 
 
 def conditional_eval(collector, evaluation):
@@ -169,7 +156,7 @@ def eval(file, method, collector, sanitycheck, outfile):
 	for f in files:
 		if "_evaluation.json" in f:
 			continue
-		if "sanity" in f or "oldlist" in f:
+		if "sanity" in f or "oldlist" in f or ".old" in f:
 			continue
 		fileID = f.split("/")[-1]
 		if verbose:
@@ -235,9 +222,11 @@ def eval(file, method, collector, sanitycheck, outfile):
 			if min_time_stamp is None or tstamp < min_time_stamp:
 				min_time_stamp = tstamp
 			if url_ not in inputs:
-				inputs[url_] = [data["measurement_start_time"]]
+				inputs[url_] = [fileID]
 			else:
-				inputs[url_].append(data["measurement_start_time"])
+				if fileID in inputs[url_]:
+					continue
+				inputs[url_].append(fileID)
 
 
 	evaluation["test_list"] = inputs
@@ -265,6 +254,7 @@ def eval(file, method, collector, sanitycheck, outfile):
 
 	
 	if method == "sankey":
+		from sankey import sankey
 		evaluation = conditional_eval(collector, evaluation)
 		evaluation = sankey(collector, evaluation, outfile)
 		if outfile:
@@ -272,12 +262,15 @@ def eval(file, method, collector, sanitycheck, outfile):
 				json.dump(evaluation, e, indent=4, sort_keys=True, default=str)
 	
 	elif method == "throttling":
+		from throttling import throttling
 		throttling(collector, outfile)
 	
 	elif method == "consistency":
+		from consistency import consistency
 		consistency(collector, outfile)
 
 	elif method == "runtimes":
+		from runtimes import runtimes
 		runtimes(collector, outfile)
 	
 	elif method == "print-details":

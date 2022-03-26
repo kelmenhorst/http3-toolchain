@@ -2,29 +2,26 @@ from visualize import plt
 import numpy as np
 import sys
 import socket
-
-import ipinfo
-access_token = 'c896c6da34ef96'
-handler = ipinfo.getHandler(access_token)
-
-timestamp_fmt = '%Y-%m-%d %H:%M:%S'
-
-def get_ipinfo(ip):
-	return handler.getDetails(ip)
-
+import json
 
 def consistency(collector, outfile):
 	stepnames = collector.classifiers()
 
 	for i, n in enumerate(stepnames):
-		stepnames[i] = n.replace("_cached", "")
+		try:
+			stepnames[i] = list(json.loads(stepnames[i]).values())[0]
+		except Exception as e:
+			pass # ignore if this fails
 
 	plotdata = []
+	quic_failure_hosts = {}
 	for i, data in enumerate(collector.class_values()):
 		host_map = {}
 		for k, q in data.items():
 			host = q.input.replace("https://", "")
 			e = q.error_type()
+			if e != "success":
+				quic_failure_hosts[host] = True
 			host = host.split("/")[0]
 			if host in host_map:
 				if e in host_map[host]:
@@ -59,7 +56,7 @@ def consistency(collector, outfile):
 		plt.plot(hy[1:], cdf, label="CDF")
 	plt.ylabel("% of hosts")
 	plt.yticks([20,40,60,80])
-	plt.xticks([70,80,90,100])
+	plt.xticks([50,60,70,80,90,100])
 	plt.legend(stepnames)
 	plt.xlabel("Result consistency [%]")
 	plt.ylim(0,100)

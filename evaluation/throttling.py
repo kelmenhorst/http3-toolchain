@@ -1,5 +1,4 @@
 import matplotlib.pylab as plt
-from scipy import integrate
 import numpy as np
 from matplotlib.lines import Line2D
 import sys
