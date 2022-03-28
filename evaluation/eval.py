@@ -175,9 +175,9 @@ def eval(file, method, collector, sanitycheck, outfile):
 			possible_asns[data["probe_asn"]] = True
 		
 			if data["test_name"] == "quicping":
-				if data["input"] in unstable_hosts:
+				if data["annotations"]["measurement_url"] in unstable_hosts:
 					continue
-				mID = Measurement.mID(data, fileID, data["annotations"]["measurement_url"])
+				mID = Measurement.mID(data, fileID, data["annotations"]["measurement_url"]+"_"+data["input"])
 				msrmnt = QuicpingMeasurement(data, mID)
 			
 			elif data["test_name"] == "urlgetter":
@@ -190,9 +190,14 @@ def eval(file, method, collector, sanitycheck, outfile):
 					url_ = data["input"]
 				if url_ in unstable_hosts:
 					continue
-			
+					
+				try:
+					probe_ip = data["test_keys"]["queries"][0]["answers"][0]["ipv4"]
+				except:
+					probe_ip = ""
+					pass
 				# create Measurement instance
-				mID = Measurement.mID(data, fileID, url_)
+				mID = Measurement.mID(data, fileID, url_+ "_" + probe_ip)
 				msrmnt = URLGetterMeasurement(data, mID)
 
 				# disregard DNS censorship
