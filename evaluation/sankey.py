@@ -77,7 +77,7 @@ def sankey(collector, evaluation, outfile):
 	sankey = hv.Sankey(df_links, kdims=steps, vdims=value_dim)
 
 	hv.extension('matplotlib')
-	sankey.opts(opts.Sankey(cmap=CMAP,labels='index', edge_color=dim(steps[0]).str(),node_color=dim('index').str(), label_text_font_size="xx-large", label_position="outer", node_width=50, show_values=True, fig_size=160))
+	sankey.opts(opts.Sankey(cmap=CMAP,labels='index', edge_color=dim(steps[0]).str(),node_color=dim('index').str(), label_text_font_size="x-large", label_position="left", node_width=50, show_values=True, fig_size=160))
 	if outfile:
 		hv.Store.renderers['matplotlib'].save(sankey, outfile.replace(".pdf", ""), 'pdf')
 	else:
