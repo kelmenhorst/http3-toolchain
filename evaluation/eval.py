@@ -107,14 +107,13 @@ def print_urls(collector, outfile):
 
 def print_details(collector, outfile):
 	for k, clss in collector.class_items():
-		urls = {}
 		print("\n"+k+"\n")
 		for measurement in clss.values():
 			print(measurement.input, measurement.proto, measurement.failure, measurement.measurement_start_time, measurement.test_runtime)
 			try:
+				print("Sucessful operations:", measurement.get_successful_operations())
 				stats = measurement.read_write_stats()
-				print(stats[0]["read_bytes"], stats[0]["read_count"])
-				print(stats[0]["time_to_last_read_ok"])
+				print("Read bytes:", stats[0]["read_bytes"], "Read count:", stats[0]["read_count"])
 			except:
 				pass
 			print(" ")
@@ -215,7 +214,7 @@ def eval(file, method, collector, sanitycheck, outfile):
 			
 			if msrmnt.test_name == "urlgetter" and "_sni" in msrmnt.urlgetter_step and msrmnt.failure is not None and ("ssl_failed_handshake" in msrmnt.failure or "tls: handshake failure" in msrmnt.failure):
 				if verbose:
-					print("sni failure")
+					print("sni failure", msrmnt.id)
 				continue
 
 			collector.check_and_add(msrmnt)
