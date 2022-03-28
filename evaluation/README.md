@@ -13,7 +13,7 @@ You only have to specify the **range of dates** and the **ASN** you are interest
 - Download and analyze HTTP/3 measurements from a specific network in a specific timeframe by running: ```python3 http3.py -a ASN -d DATES -o OUT```, e.g. ```python3 http3.py -a AS133694 -d "2022-01-01 2022-03-15" -o result_file.pdf```
 
 
-### Usage
+### Options
 ```http3.py [-h] [-f FILE] -a ASN [-d DATES] [-o OUT]```
 - use ```-a``` to specify the ASN you want to investigate, e.g. "AS45090". If you interested in a specific country, run ```http3.py -a COUNTRYCODE```, e.g. ```http3.py -a DE``` to get a list of the ASN's with HTTP/3 measurements in this country.
 - use ```-d``` to specify the dates range to investigate, e.g. "2022-02-01 2022-03-01"
