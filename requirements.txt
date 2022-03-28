@@ -1,8 +1,10 @@
+numpy
 requests
-pandas
+pandas == 1.2.5
 numpy
 matplotlib
 dateutil 
 seaborn == 0.11.2
 holoviews == 1.14.3
 bokeh == 2.2.3
+Jinja2==3.0.1
